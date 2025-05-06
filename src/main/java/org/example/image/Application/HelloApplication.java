@@ -1,4 +1,4 @@
-package org.example.image;
+package org.example.image.Application;
 
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
@@ -10,7 +10,7 @@ import java.io.IOException;
 public class HelloApplication extends Application {
     @Override
     public void start(Stage stage) throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("/org/example/image/hello-view.fxml"));
+        FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("/org/example/image/Index/index.fxml"));
         Scene scene = new Scene(fxmlLoader.load(), 620, 540);
         stage.setTitle("美图看看");
         stage.setScene(scene);
