@@ -1,0 +1,46 @@
+.slideshow-root {
+    -fx-background-color: black;
+}
+
+.image-container {
+    -fx-background-color: black;
+    -fx-alignment: center;
+}
+
+.slideshow-image {
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 10, 0, 0, 0);
+}
+
+.control-bar {
+    -fx-background-color: rgba(0, 0, 0, 0.7);
+    -fx-padding: 10px;
+}
+
+.control-button {
+    -fx-background-color: transparent;
+    -fx-border-color: white;
+    -fx-border-radius: 5px;
+    -fx-padding: 5px;
+    -fx-cursor: hand;
+}
+
+.control-button:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.1);
+}
+
+.zoom-label {
+    -fx-text-fill: white;
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+}
+
+.play-label {
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+}
+
+.status-label {
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-padding: 0 10px;
+} 
