@@ -1,66 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.image.Image?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.StackPane?>
-
-<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.layout.VBox?>
-<BorderPane prefHeight="656.0" prefWidth="899.0" styleClass="slideshow-root" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.example.image.Controller.SlideshowController">
+
+<BorderPane fx:id="mainPane" prefHeight="609.0" prefWidth="786.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/17" fx:controller="org.example.image.Controller.SlideshowController">
     <center>
-        <StackPane styleClass="image-container">
-            <ImageView fx:id="imageView" fitHeight="600" fitWidth="800" preserveRatio="true" smooth="true" styleClass="slideshow-image" />
-        </StackPane>
+        <ScrollPane fx:id="imageScrollPane" fitToHeight="true" fitToWidth="true" BorderPane.alignment="CENTER">
+            <content>
+                <StackPane fx:id="imageContainer" prefHeight="600.0" prefWidth="800.0">
+                    <children>
+                        <ImageView fx:id="imageView" fitHeight="600.0" fitWidth="800.0" preserveRatio="true" smooth="true" />
+                    </children>
+                </StackPane>
+            </content>
+        </ScrollPane>
     </center>
     <bottom>
-        <VBox spacing="0">
-            <HBox alignment="CENTER" spacing="10" styleClass="control-bar">
-                <padding>
-                    <Insets bottom="10" left="10" right="10" top="10" />
-                </padding>
-                <Button fx:id="prevButton" onAction="#handlePrev" styleClass="control-button">
-                    <graphic>
-                        <ImageView fitHeight="24" fitWidth="24" preserveRatio="true">
-                            <image>
-                                <Image url="@../../../../imgs/icons/左.png" />
-                            </image>
-                        </ImageView>
-                    </graphic>
-                </Button>
-                <Button fx:id="nextButton" onAction="#handleNext" styleClass="control-button">
-                    <graphic>
-                        <ImageView fitHeight="24" fitWidth="24" preserveRatio="true">
-                            <image>
-                                <Image url="@../../../../imgs/icons/右.png" />
-                            </image>
-                        </ImageView>
-                    </graphic>
-                </Button>
-                <Button fx:id="zoomInButton" onAction="#handleZoomIn" styleClass="control-button">
-                    <graphic>
-                        <Label styleClass="zoom-label" text="+" />
-                    </graphic>
-                </Button>
-                <Button fx:id="zoomOutButton" onAction="#handleZoomOut" styleClass="control-button">
-                    <graphic>
-                        <Label styleClass="zoom-label" text="-" />
-                    </graphic>
-                </Button>
-                <Button fx:id="playButton" onAction="#handlePlay" styleClass="control-button">
-                    <graphic>
-                        <Label styleClass="play-label" text="播放" />
-                    </graphic>
-                </Button>
-                <Label fx:id="statusLabel" styleClass="status-label" />
-            </HBox>
-            <ScrollPane fitToHeight="true" fitToWidth="true" hbarPolicy="ALWAYS" vbarPolicy="NEVER" styleClass="preview-bar">
-                <HBox fx:id="previewBox" spacing="5" alignment="CENTER_LEFT" styleClass="preview-box"/>
-            </ScrollPane>
+        <VBox spacing="5">
+            <children>
+                <HBox fx:id="previewBox" alignment="CENTER" spacing="5" />
+                <HBox fx:id="toolbar" alignment="CENTER" spacing="10" style="-fx-background-color: #f0f0f0;">
+                    <children>
+                        <Button fx:id="prevButton" mnemonicParsing="false" onAction="#handlePrev" text="上一张" />
+                        <Button fx:id="nextButton" mnemonicParsing="false" onAction="#handleNext" text="下一张" />
+                        <Label text="缩放:" />
+                        <Button fx:id="zoomInButton" mnemonicParsing="false" onAction="#handleZoomIn" text="放大" />
+                        <Button fx:id="zoomOutButton" mnemonicParsing="false" onAction="#handleZoomOut" text="缩小" />
+                        <Button fx:id="playButton" mnemonicParsing="false" onAction="#handlePlay" text="播放" />
+                        <Label fx:id="statusLabel" text="图片 0 / 0" />
+                    </children>
+                </HBox>
+            </children>
         </VBox>
     </bottom>
 </BorderPane>
