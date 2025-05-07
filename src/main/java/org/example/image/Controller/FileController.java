@@ -44,13 +44,27 @@ public class FileController implements Initializable {
     private Slider zoomSlider;
     @FXML
     private HBox previewBox;
-    private final ObservableList<File> selectedFiles = FXCollections.observableArrayList();
+    @FXML
+    private TextField searchField;
+    @FXML
+    private TextField pathField;
+    @FXML
+    private Button backButton;
+    @FXML
+    private Button forwardButton;
+    @FXML
+    private Button upButton;
 
+    private final ObservableList<File> selectedFiles = FXCollections.observableArrayList();
     private final StringProperty statusMessage = new SimpleStringProperty();
     private final Pattern imagePattern = Pattern.compile("(?i).*\\.(jpg|jpeg|gif|png|bmp)");
     private File currentDirectory;
     private List<File> clipboardFiles = new ArrayList<>();
 
+    private javafx.scene.shape.Rectangle selectionRectangle;
+    private double dragStartX, dragStartY;
+    private Stack<File> navigationHistory = new Stack<>();
+    private Stack<File> forwardHistory = new Stack<>();
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -59,6 +73,9 @@ public class FileController implements Initializable {
         setupContextMenu();
         setupStatusBinding();
         setupZoomSlider();
+        setupSearchField();
+        setupPathField();
+        setupNavigationButtons();
     }
 
     private void setupDirectoryTree() {
@@ -85,8 +102,16 @@ public class FileController implements Initializable {
         directoryTree.setRoot(root);
         directoryTree.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null) {
-                currentDirectory = new File(newValue.getValue());
-                loadThumbnails(currentDirectory);
+                File newDir = new File(newValue.getValue());
+                if (newDir.isDirectory()) {
+                    if (currentDirectory != null) {
+                        navigationHistory.push(currentDirectory);
+                        forwardHistory.clear();
+                    }
+                    currentDirectory = newDir;
+                    loadThumbnails(currentDirectory);
+                    updateNavigationButtons();
+                }
             }
         });
     }
@@ -113,14 +138,70 @@ public class FileController implements Initializable {
         }
     }
 
-    private javafx.scene.shape.Rectangle selectionRectangle;
-    private double dragStartX, dragStartY;
+    private void setupSearchField() {
+        searchField.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (currentDirectory != null) {
+                filterThumbnails(newValue);
+            }
+        });
+    }
+
+    private void setupPathField() {
+        pathField.setOnAction(event -> {
+            String newPath = pathField.getText().trim();
+            File newDir = new File(newPath);
+            if (newDir.exists() && newDir.isDirectory()) {
+                currentDirectory = newDir;
+                loadThumbnails(currentDirectory);
+                updateDirectoryTreeSelection(newDir);
+            } else {
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("路径错误");
+                alert.setHeaderText("无效的目录路径");
+                alert.setContentText("请检查输入的路径是否正确。");
+                alert.showAndWait();
+            }
+        });
+    }
+
+    private void updateDirectoryTreeSelection(File directory) {
+        String path = directory.getAbsolutePath();
+        TreeItem<String> root = directoryTree.getRoot();
+        for (TreeItem<String> item : root.getChildren()) {
+            if (item.getValue().equals(path)) {
+                directoryTree.getSelectionModel().select(item);
+                break;
+            }
+        }
+    }
+
+    private void filterThumbnails(String searchText) {
+        thumbnailPane.getChildren().clear();
+        selectedFiles.clear();
+
+        if (currentDirectory != null) {
+            File[] files = currentDirectory.listFiles((dir, name) -> {
+                boolean isImage = imagePattern.matcher(name).matches();
+                boolean matchesSearch = searchText.isEmpty() || 
+                    name.toLowerCase().contains(searchText.toLowerCase());
+                return isImage && matchesSearch;
+            });
+
+            if (files != null) {
+                for (File file : files) {
+                    VBox thumbnail = createThumbnail(file);
+                    thumbnailPane.getChildren().add(thumbnail);
+                }
+            }
+            updateStatusMessage();
+        }
+    }
 
     private void setupThumbnailPane() {
         thumbnailPane.setOnMousePressed(event -> {
             if (event.isPrimaryButtonDown() && event.getTarget() == thumbnailPane) {
-                clearSelection();
                 if (!event.isControlDown()) {
+                    clearSelection();
                     dragStartX = event.getX();
                     dragStartY = event.getY();
                     if (selectionRectangle == null) {
@@ -130,6 +211,13 @@ public class FileController implements Initializable {
                         thumbnailPane.getChildren().add(selectionRectangle);
                     }
                 }
+            }
+        });
+
+        // 监听空白区域的点击事件
+        thumbnailPane.setOnMouseClicked(event -> {
+            if (event.getTarget() == thumbnailPane) {
+                clearSelection();
             }
         });
 
@@ -144,6 +232,10 @@ public class FileController implements Initializable {
                 selectionRectangle.setWidth(width);
                 selectionRectangle.setHeight(height);
 
+                // 清空选中
+                clearSelection();
+
+                // 鼠标拖拽形成的区域
                 for (javafx.scene.Node node : thumbnailPane.getChildren()) {
                     if (node instanceof VBox) {
                         VBox thumbnailBox = (VBox) node;
@@ -332,14 +424,72 @@ public class FileController implements Initializable {
             }
         });
     }
+    //初始化按钮
+    private void setupNavigationButtons() {
+        backButton.setOnAction(event -> navigateBack());
+        forwardButton.setOnAction(event -> navigateForward());
+        upButton.setOnAction(event -> navigateUp());
+        
+        // 初始时禁用导航按钮
+        updateNavigationButtons();
+    }
+
+    private void navigateBack() {
+        if (!navigationHistory.isEmpty()) {
+            File currentDir = currentDirectory;
+            forwardHistory.push(currentDir);
+            currentDirectory = navigationHistory.pop();
+            loadThumbnails(currentDirectory);
+            updateDirectoryTreeSelection(currentDirectory);
+            updateNavigationButtons();
+        }
+    }
+
+    private void navigateForward() {
+        if (!forwardHistory.isEmpty()) {
+            File currentDir = currentDirectory;
+            navigationHistory.push(currentDir);
+            currentDirectory = forwardHistory.pop();
+            loadThumbnails(currentDirectory);
+            updateDirectoryTreeSelection(currentDirectory);
+            updateNavigationButtons();
+        }
+    }
+
+    private void navigateUp() {
+        if (currentDirectory != null && currentDirectory.getParentFile() != null) {
+            File currentDir = currentDirectory;
+            navigationHistory.push(currentDir);
+            forwardHistory.clear();
+            currentDirectory = currentDirectory.getParentFile();
+            loadThumbnails(currentDirectory);
+            updateDirectoryTreeSelection(currentDirectory);
+            updateNavigationButtons();
+        }
+    }
+
+    private void updateNavigationButtons() {
+        backButton.setDisable(navigationHistory.isEmpty());
+        forwardButton.setDisable(forwardHistory.isEmpty());
+        upButton.setDisable(currentDirectory == null || currentDirectory.getParentFile() == null);
+    }
 
     private void loadThumbnails(File directory) {
         thumbnailPane.getChildren().clear();
         selectedFiles.clear();
 
         if (directory.isDirectory()) {
+            currentDirectory = directory;
             selectedDirLabel.setText("当前目录: " + directory.getAbsolutePath());
-            File[] files = directory.listFiles((dir, name) -> imagePattern.matcher(name).matches());
+            pathField.setText(directory.getAbsolutePath());
+            
+            String searchText = searchField.getText();
+            File[] files = directory.listFiles((dir, name) -> {
+                boolean isImage = imagePattern.matcher(name).matches();
+                boolean matchesSearch = searchText.isEmpty() || 
+                    name.toLowerCase().contains(searchText.toLowerCase());
+                return isImage && matchesSearch;
+            });
 
             if (files != null) {
                 for (File file : files) {
@@ -351,6 +501,7 @@ public class FileController implements Initializable {
         }
     }
 
+    //搜索图片
     private void toggleSelection(VBox vbox, File file) {
         if (selectedFiles.contains(file)) {
             selectedFiles.remove(file);
@@ -379,8 +530,31 @@ public class FileController implements Initializable {
     }
 
     private void updateStatusMessage() {
-        statusMessageLabel.setText(String.format("找到 %d 张图片", thumbnailPane.getChildren().size()));
+        long totalSize = 0;
+        for (javafx.scene.Node node : thumbnailPane.getChildren()) {
+            if (node instanceof VBox) {
+                File file = (File) node.getUserData();
+                totalSize += file.length();
+            }
+        }
+        
+        String sizeText = formatFileSize(totalSize);
+        statusMessageLabel.setText(String.format("找到 %d 张图片，总大小: %s", 
+            thumbnailPane.getChildren().size(), sizeText));
         statusMessageLabelText.setText(String.format("选中 %d 张图片", selectedFiles.size()));
+    }
+
+    //统计图片大小
+    private String formatFileSize(long bytes) {
+        if (bytes < 1024) {
+            return bytes + " B";
+        } else if (bytes < 1024 * 1024) {
+            return String.format("%.1f KB", bytes / 1024.0);
+        } else if (bytes < 1024 * 1024 * 1024) {
+            return String.format("%.1f MB", bytes / (1024.0 * 1024));
+        } else {
+            return String.format("%.1f GB", bytes / (1024.0 * 1024 * 1024));
+        }
     }
 
     private long calculateTotalSize(File[] files) {

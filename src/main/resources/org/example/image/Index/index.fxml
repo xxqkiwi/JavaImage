@@ -12,12 +12,12 @@
     <children>
         <SplitPane dividerPositions="0.25" prefHeight="600.0" prefWidth="900.0">
             <items>
-                <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="361.0" prefWidth="184.0">
+                <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="361.0" prefWidth="184.0" styleClass="main-pane">
                     <children>
-                        <TreeView fx:id="directoryTree" layoutX="1.0" layoutY="34.0" prefHeight="452.0" prefWidth="263.0" styleClass="tree-view" />
+                        <TreeView fx:id="directoryTree" layoutX="-6.0" layoutY="34.0" prefHeight="483.0" prefWidth="237.0" styleClass="tree-view" />
                         <Label fx:id="infoLabel" layoutX="26.0" layoutY="50.0" text="我的电脑" />
                         <Label fx:id="selectedDirLabel" layoutX="14.0" layoutY="14.0" text="当前目录: " />
-                        <VBox layoutX="8.0" layoutY="552.0" prefHeight="40.0" prefWidth="247.0" styleClass="status-bar" spacing="5">
+                        <VBox layoutY="528.0" prefHeight="62.0" prefWidth="221.0" spacing="5" styleClass="status-bar">
                             <children>
                                 <Label fx:id="statusMessageLabel" styleClass="status-label" />
                                 <Label fx:id="statusMessageLabelText" styleClass="status-label" />
@@ -25,13 +25,13 @@
                         </VBox>
                     </children>
                 </AnchorPane>
-                <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="182.0" prefWidth="137.0">
+                <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="182.0" prefWidth="137.0" styleClass="main-pane">
                     <children>
                         <HBox alignment="CENTER_LEFT" layoutX="14.0" layoutY="2.0" spacing="10">
                             <children>
                                 <Button fx:id="backButton" styleClass="nav-button">
                                     <graphic>
-                                        <ImageView fitHeight="23.0" fitWidth="32.0" pickOnBounds="true" preserveRatio="true">
+                                        <ImageView fitHeight="20.0" fitWidth="20.0" pickOnBounds="true" preserveRatio="true">
                                             <image>
                                                 <Image url="@../../../../imgs/icons/左.png" />
                                             </image>
@@ -40,7 +40,7 @@
                                 </Button>
                                 <Button fx:id="forwardButton" styleClass="nav-button">
                                     <graphic>
-                                        <ImageView fitHeight="16.0" fitWidth="21.0" pickOnBounds="true" preserveRatio="true">
+                                        <ImageView fitHeight="16.0" fitWidth="16.0" pickOnBounds="true" preserveRatio="true">
                                             <image>
                                                 <Image url="@../../../../imgs/icons/右.png" />
                                             </image>
@@ -49,46 +49,37 @@
                                 </Button>
                                 <Button fx:id="upButton" styleClass="nav-button">
                                     <graphic>
-                                        <ImageView fitHeight="26.0" fitWidth="34.0" pickOnBounds="true" preserveRatio="true">
+                                        <ImageView fitHeight="20.0" fitWidth="20.0" pickOnBounds="true" preserveRatio="true">
                                             <image>
                                                 <Image url="@../../../../imgs/icons/上级.png" />
                                             </image>
                                         </ImageView>
                                     </graphic>
                                 </Button>
-                                <TextField fx:id="searchField" prefHeight="23.0" prefWidth="313.0" promptText="搜索图片" />
-                                <TextField fx:id="pathField" prefHeight="23.0" prefWidth="155.0" promptText="路径" />
-                                <MenuButton fx:id="viewMenu" mnemonicParsing="false" prefHeight="23.0" prefWidth="18.0" text="视图">
-                                    <items>
-                                        <MenuItem mnemonicParsing="false" text="大图标" />
-                                        <MenuItem mnemonicParsing="false" text="小图标" />
-                                        <MenuItem mnemonicParsing="false" text="列表" />
-                                    </items>
-                                </MenuButton>
+                                <TextField fx:id="pathField" prefHeight="23.0" prefWidth="313.0" promptText="路径" />
+                                <TextField fx:id="searchField" prefHeight="23.0" prefWidth="193.0" promptText="搜索图片" />
                             </children>
                         </HBox>
-                        <HBox layoutX="14.0" layoutY="39.0" spacing="10" alignment="CENTER_LEFT">
+                        <HBox alignment="CENTER_LEFT" layoutX="507.0" layoutY="31.0" prefHeight="28.0" prefWidth="133.0" spacing="10">
                             <children>
-                                <Slider fx:id="zoomSlider" prefHeight="14.0" prefWidth="81.0" min="0.5" max="2.0" value="1.0" />
-                                <MenuButton fx:id="sortMenu" mnemonicParsing="false" prefHeight="23.0" prefWidth="59.0" text="排序">
-                                    <items>
-                                        <MenuItem mnemonicParsing="false" text="名称" />
-                                        <MenuItem mnemonicParsing="false" text="大小" />
-                                        <MenuItem mnemonicParsing="false" text="修改日期" />
-                                    </items>
-                                </MenuButton>
-                                <Button fx:id="slideshowButton" onAction="#openSlideshow" styleClass="control-button">
+                                <Slider fx:id="zoomSlider" max="2.0" min="0.5" prefHeight="14.0" prefWidth="81.0" value="1.0" />
+                                <Button fx:id="slideshowButton" onAction="#openSlideshow" prefHeight="21.0" prefWidth="32.0" styleClass="slideshow-button">
                                     <graphic>
-                                        <Label text="幻灯片播放" styleClass="play-label"/>
+                                        <ImageView fitHeight="20.0" fitWidth="20.0" pickOnBounds="true" preserveRatio="true">
+                                            <image>
+                                                <Image url="@../../../../imgs/icons/播放.png" />
+                                            </image>
+                                        </ImageView>
                                     </graphic>
                                 </Button>
                             </children>
                         </HBox>
-                        <ScrollPane fitToWidth="true" layoutX="1.0" layoutY="61.0" prefHeight="539.0" prefWidth="674.0">
+                        <ScrollPane fitToWidth="true" layoutX="1.0" layoutY="66.0" prefHeight="534.0" prefWidth="674.0" styleClass="content-scroll-pane">
                             <content>
                                 <FlowPane fx:id="thumbnailPane" hgap="15" prefWrapLength="650.0" styleClass="flow-pane" vgap="15" />
                             </content>
                         </ScrollPane>
+                  <Separator layoutX="-2.0" layoutY="62.0" prefHeight="8.0" prefWidth="674.0" />
                     </children>
                 </AnchorPane>
             </items>
