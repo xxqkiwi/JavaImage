@@ -1,8 +1,95 @@
+/* 主面板 */
 .slideshow-root {
-    -fx-background-color: black;
+    -fx-background-color: #F8FAFC;
 }
 
-.image-container {
+/* 滚动面板 */
+.content-scroll-pane {
+    -fx-background-color: #F8FAFC;
+}
+
+.content-scroll-pane > .viewport {
+    -fx-background-color: #F8FAFC;
+}
+
+.content-scroll-pane > .viewport > * {
+    -fx-background-color: #F8FAFC;
+}
+
+/* 底部容器 */
+.bottom-container {
+    -fx-background-color: #F8FAFC;
+}
+
+/* 预览区域 */
+.preview-box {
+    -fx-background-color: #F0FFFF;
+    -fx-padding: 5px;
+    -fx-min-height: 60px;
+}
+
+/* 预览缩略图 */
+.preview-thumb {
+    -fx-border-color: transparent;
+    -fx-border-width: 2px;
+    -fx-border-radius: 4px;
+    -fx-padding: 2px;
+}
+
+.selected {
+    -fx-border-color: #4682B4;
+    -fx-border-width: 2px;
+    -fx-border-radius: 4px;
+    -fx-padding: 2px;
+}
+
+/* 工具栏 */
+.toolbar {
+    -fx-background-color: #E6F7FD;
+    -fx-padding: 10px;
+    -fx-min-height: 50px;
+    -fx-border-color: #B0E0E6;
+    -fx-border-width: 1px 0 0 0;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+}
+
+/* 按钮 */
+.control-button {
+    -fx-background-color: #F0FFFF;
+    -fx-border-color: #B0E0E6;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-padding: 5px;
+    -fx-min-width: 32px;
+    -fx-min-height: 32px;
+    -fx-max-width: 32px;
+    -fx-max-height: 32px;
+    -fx-cursor: hand;
+}
+
+.control-button:hover {
+    -fx-background-color: #E0F0FF;
+    -fx-border-color: #87CEEB;
+}
+
+.control-button:pressed {
+    -fx-background-color: #B0E0E6;
+}
+
+.control-button:disabled {
+    -fx-opacity: 0.5;
+    -fx-cursor: default;
+}
+
+/* 状态标签 */
+.status-label {
+    -fx-text-fill: #4682B4;
+    -fx-font-size: 14px;
+    -fx-padding: 0 10px;
+}
+
+/*.image-container {
     -fx-background-color: black;
     -fx-alignment: center;
 }
@@ -24,10 +111,6 @@
     -fx-cursor: hand;
 }
 
-.control-button:hover {
-    -fx-background-color: rgba(255, 255, 255, 0.1);
-}
-
 .zoom-label {
     -fx-text-fill: white;
     -fx-font-size: 20px;
@@ -37,10 +120,4 @@
 .play-label {
     -fx-text-fill: white;
     -fx-font-size: 14px;
-}
-
-.status-label {
-    -fx-text-fill: white;
-    -fx-font-size: 14px;
-    -fx-padding: 0 10px;
-} 
+} */
