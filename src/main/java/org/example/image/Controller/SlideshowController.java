@@ -227,38 +227,56 @@ public class SlideshowController implements Initializable {
         // 计算显示的结束索引（确保不超过图片总数）
         int endIndex = Math.min(imageFiles.size() - 1, currentIndex + 2);
 
-        // 如果当前图片靠近开头，调整起始索引
-        if (currentIndex < 2) {
-            startIndex = 0;
-            endIndex = Math.min(imageFiles.size() - 1, 4);
+        if (endIndex - startIndex < 4) {
+            startIndex = Math.max(0, endIndex - 4);
         }
-        // 如果当前图片靠近结尾，调整结束索引
-        else if (currentIndex > imageFiles.size() - 3) {
-            startIndex = Math.max(0, imageFiles.size() - 5);
-            endIndex = imageFiles.size() - 1;
-        }
+
+        final double THUMBNAIL_WIDTH = 70;
+        final double THUMBNAIL_HEIGHT = 70;
 
         for (int i = startIndex; i <= endIndex; i++) {
             File file = imageFiles.get(i);
-            ImageView thumb = new ImageView(new Image(new FileInputStream(file), 70, 70, true, true));
-            thumb.getStyleClass().add("preview-thumb");
+            ImageView thumb = new ImageView(new Image(
+                    new FileInputStream(file),
+                    THUMBNAIL_WIDTH,
+                    THUMBNAIL_HEIGHT,
+                    false,
+                    true
+            ));
+
+            thumb.setFitWidth(THUMBNAIL_WIDTH);
+            thumb.setFitHeight(THUMBNAIL_HEIGHT);
+            thumb.setPreserveRatio(false);
+            thumb.setSmooth(true);
+
+            StackPane thumbContainer = new StackPane();
+            thumbContainer.getChildren().add(thumb);
+            thumbContainer.getStyleClass().add("preview-thumb-container");
+
             if (i == currentIndex) {
-                thumb.getStyleClass().add("selected");
+                thumbContainer.getStyleClass().add("selected");
             }
+
             final int idx = i;
-            thumb.setOnMouseClicked(e -> {
+            thumbContainer.setOnMouseClicked(e -> {
                 currentIndex = idx;
-                loadCurrentImage();
-                updateStatus();
                 try {
+                    loadCurrentImage();
+                    updateStatus();
                     updatePreviewBar();
                 } catch (FileNotFoundException ex) {
-                    //throw new RuntimeException(ex);
-                    ex.printStackTrace();
+                    // 处理文件不存在的情况
+                    System.err.println("无法加载图片: " + file.getAbsolutePath());
+                    System.err.println("错误信息: " + ex.getMessage());
+
+                    // 可选：显示错误提示给用户
+                    statusLabel.setText("无法加载图片: " + file.getName());
                 }
             });
-            previewBox.getChildren().add(thumb);
+
+            previewBox.getChildren().add(thumbContainer);
         }
+
     }
 
     //缩放图片
