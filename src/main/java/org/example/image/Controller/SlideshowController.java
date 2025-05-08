@@ -87,13 +87,13 @@ public class SlideshowController implements Initializable {
         toolbar.setStyle("-fx-background-color: #f0f0f0;");
 
         // 添加关闭按钮
-        /*closeButton = new Button("关闭");
+        closeButton = new Button("关闭");
         closeButton.setOnAction(event -> {
             // 获取当前窗口并关闭
             Stage stage = (Stage) mainPane.getScene().getWindow();
             stage.close();
         });
-        toolbar.getChildren().add(closeButton);*/
+        toolbar.getChildren().add(closeButton);
 
         // 添加键盘事件支持
         mainPane.setOnKeyPressed(event->{
@@ -220,15 +220,6 @@ public class SlideshowController implements Initializable {
             isPlaying = true;
         }
     }
-    // 关闭按钮
-    @FXML
-    private void handleClose() {
-            // 获取当前窗口并关闭
-            Stage stage = (Stage) mainPane.getScene().getWindow();
-            stage.close();
-    }
-
-    //更新缩略图区域
     private void updatePreviewBar() throws FileNotFoundException {
         previewBox.getChildren().clear();
         // 计算显示的起始索引（确保不小于0）
@@ -236,7 +227,6 @@ public class SlideshowController implements Initializable {
         // 计算显示的结束索引（确保不超过图片总数）
         int endIndex = Math.min(imageFiles.size() - 1, currentIndex + 2);
 
-        //保证一行五个图片
         // 如果当前图片靠近开头，调整起始索引
         if (currentIndex < 2) {
             startIndex = 0;
