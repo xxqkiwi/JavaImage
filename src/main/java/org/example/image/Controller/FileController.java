@@ -13,6 +13,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.Clipboard;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -24,6 +25,13 @@ import java.net.URL;
 import java.nio.file.*;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.nio.channels.FileChannel;
+import java.nio.file.StandardOpenOption;
+import javafx.application.Platform;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.DataFormat;
+
 
 public class FileController implements Initializable {
     @FXML
@@ -116,54 +124,7 @@ public class FileController implements Initializable {
     private javafx.scene.shape.Rectangle selectionRectangle;
     private double dragStartX, dragStartY;
 
-    private void setupThumbnailPane() {
-        thumbnailPane.setOnMousePressed(event -> {
-            if (event.isPrimaryButtonDown() && event.getTarget() == thumbnailPane) {
-                clearSelection();
-                if (!event.isControlDown()) {
-                    dragStartX = event.getX();
-                    dragStartY = event.getY();
-                    if (selectionRectangle == null) {
-                        selectionRectangle = new javafx.scene.shape.Rectangle();
-                        selectionRectangle.setStroke(javafx.scene.paint.Color.BLUE);
-                        selectionRectangle.setFill(javafx.scene.paint.Color.LIGHTBLUE.deriveColor(1, 1, 1, 0.3));
-                        thumbnailPane.getChildren().add(selectionRectangle);
-                    }
-                }
-            }
-        });
 
-        thumbnailPane.setOnMouseDragged(event -> {
-            if (selectionRectangle != null) {
-                double x = Math.min(dragStartX, event.getX());
-                double y = Math.min(dragStartY, event.getY());
-                double width = Math.abs(event.getX() - dragStartX);
-                double height = Math.abs(event.getY() - dragStartY);
-                selectionRectangle.setX(x);
-                selectionRectangle.setY(y);
-                selectionRectangle.setWidth(width);
-                selectionRectangle.setHeight(height);
-
-                for (javafx.scene.Node node : thumbnailPane.getChildren()) {
-                    if (node instanceof VBox) {
-                        VBox thumbnailBox = (VBox) node;
-                        javafx.geometry.Bounds bounds = thumbnailBox.localToParent(thumbnailBox.getBoundsInLocal());
-                        if (selectionRectangle.getBoundsInLocal().intersects(bounds)) {
-                            File file = (File) thumbnailBox.getUserData();
-                            selectImage(thumbnailBox, file);
-                        }
-                    }
-                }
-            }
-        });
-
-        thumbnailPane.setOnMouseReleased(event -> {
-            if (selectionRectangle != null) {
-                thumbnailPane.getChildren().remove(selectionRectangle);
-                selectionRectangle = null;
-            }
-        });
-    }
 
     private VBox createThumbnail(File file) {
         try {
@@ -253,22 +214,88 @@ public class FileController implements Initializable {
         }
     }
 
+    private boolean isCutOperation = false; // true表示剪切，false表示复制
+    private void setupThumbnailPane() {
+        thumbnailPane.setOnMousePressed(event -> {
+            if (event.isPrimaryButtonDown() && event.getTarget() == thumbnailPane) {
+                clearSelection();
+                if (!event.isControlDown()) {
+                    dragStartX = event.getX();
+                    dragStartY = event.getY();
+                    if (selectionRectangle == null) {
+                        selectionRectangle = new javafx.scene.shape.Rectangle();
+                        selectionRectangle.setStroke(javafx.scene.paint.Color.BLUE);
+                        selectionRectangle.setFill(javafx.scene.paint.Color.LIGHTBLUE.deriveColor(1, 1, 1, 0.3));
+                        thumbnailPane.getChildren().add(selectionRectangle);
+                    }
+                }
+            }
+        });
+
+        thumbnailPane.setOnMouseDragged(event -> {
+            if (selectionRectangle != null) {
+                double x = Math.min(dragStartX, event.getX());
+                double y = Math.min(dragStartY, event.getY());
+                double width = Math.abs(event.getX() - dragStartX);
+                double height = Math.abs(event.getY() - dragStartY);
+                selectionRectangle.setX(x);
+                selectionRectangle.setY(y);
+                selectionRectangle.setWidth(width);
+                selectionRectangle.setHeight(height);
+
+                for (javafx.scene.Node node : thumbnailPane.getChildren()) {
+                    if (node instanceof VBox) {
+                        VBox thumbnailBox = (VBox) node;
+                        javafx.geometry.Bounds bounds = thumbnailBox.localToParent(thumbnailBox.getBoundsInLocal());
+                        if (selectionRectangle.getBoundsInLocal().intersects(bounds)) {
+                            File file = (File) thumbnailBox.getUserData();
+                            selectImage(thumbnailBox, file);
+                        }
+                    }
+                }
+            }
+        });
+
+        thumbnailPane.setOnMouseReleased(event -> {
+            if (selectionRectangle != null) {
+                thumbnailPane.getChildren().remove(selectionRectangle);
+                selectionRectangle = null;
+            }
+        });
+
+    }
+
     private void setupContextMenu() {
         ContextMenu contextMenu = new ContextMenu();
-        MenuItem deleteItem = new MenuItem("删除");
-        deleteItem.setOnAction(this::handleDelete);
 
         MenuItem copyItem = new MenuItem("复制");
         copyItem.setOnAction(this::handleCopy);
 
+        MenuItem cutItem = new MenuItem("剪切");
+        cutItem.setOnAction(this::handleCut);
+
+        MenuItem pasteItem = new MenuItem("粘贴");
+        pasteItem.setOnAction(this::handlePaste);
+
         MenuItem renameItem = new MenuItem("重命名");
         renameItem.setOnAction(this::handleRename);
 
-        contextMenu.getItems().addAll(deleteItem, copyItem, renameItem);
+        MenuItem deleteItem = new MenuItem("删除");
+        deleteItem.setOnAction(this::handleDelete);
+
+        contextMenu.getItems().addAll(copyItem, cutItem, pasteItem, renameItem, deleteItem);
+
         thumbnailPane.setOnContextMenuRequested(event -> {
-            if (!selectedFiles.isEmpty()) {
-                contextMenu.show(thumbnailPane, event.getScreenX(), event.getScreenY());
-            }
+            boolean hasSelection = !selectedFiles.isEmpty();
+            boolean canPaste = clipboardFiles.size() > 0;
+
+            copyItem.setDisable(!hasSelection);
+            cutItem.setDisable(!hasSelection);
+            deleteItem.setDisable(!hasSelection);
+            renameItem.setDisable(!hasSelection);
+            pasteItem.setDisable(!canPaste);
+
+            contextMenu.show(thumbnailPane, event.getScreenX(), event.getScreenY());
         });
     }
 
@@ -391,8 +418,20 @@ public class FileController implements Initializable {
         return totalSize / 1024;
     }
 
-    @FXML
-    private void handleDelete(ActionEvent event) {
+
+    // 在类中添加方法实现
+    private void refreshDirectoryTree() {
+        TreeItem<String> selectedItem = directoryTree.getSelectionModel().getSelectedItem();
+        if (selectedItem != null) {
+            File dir = new File(selectedItem.getValue());
+            loadDirectoryTree(selectedItem, dir); // 重新加载当前目录节点
+        }
+    }
+
+
+
+   @FXML
+   private void handleDelete(ActionEvent event) {
         if (!selectedFiles.isEmpty()) {
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
             alert.setTitle("确认删除");
@@ -400,11 +439,37 @@ public class FileController implements Initializable {
             Optional<ButtonType> result = alert.showAndWait();
 
             if (result.isPresent() && result.get() == ButtonType.OK) {
+
                 for (File file : selectedFiles) {
+
                     try {
+                        // 尝试直接删除文件
+                        System.out.println("delete");
                         Files.delete(file.toPath());
+                        System.out.println("delete2");
+                    } catch (FileSystemException e) {
+                        showAlert("删除延迟", "无法删除文件1: " + e.getMessage());
+                        // 如果文件被占用，尝试延迟删除
+                        if (System.getProperty("os.name").contains("Windows")) {
+                            try {
+                                // 使用 cmd 命令延迟删除文件
+                                System.out.println("delay");
+                                Runtime.getRuntime().exec(
+                                        "cmd /c choice /c Y /n /d Y /t 2 > nul & del /F /Q \"" + file.getAbsolutePath() + "\"");
+                                System.out.println("sb");
+                            } catch (IOException ex) {
+                                System.out.println("sb1");
+                                showAlert("延迟删除失败", "无法执行延迟删除命令: " + ex.getMessage());
+                                System.out.println("sb2");
+                            }
+                        } else {
+                            // 对于非 Windows 系统，可以尝试其他方法
+                            System.out.println("sb3");
+                            showAlert("删除失败", "文件被占用，无法删除: " + e.getMessage());
+                            System.out.println("sb4");
+                        }
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        showAlert("删除失败", "无法删除文件2: " + e.getMessage());
                     }
                 }
                 loadThumbnails(currentDirectory);
@@ -417,27 +482,83 @@ public class FileController implements Initializable {
         clipboardFiles = new ArrayList<>(selectedFiles);
     }
 
+    // 剪切操作
+    @FXML
+    private void handleCut(ActionEvent event) {
+        clipboardFiles = new ArrayList<>(selectedFiles);
+        isCutOperation = true; // 设置为剪切模式
+    }
+
+
     @FXML
     private void handlePaste(ActionEvent event) {
-        if (!clipboardFiles.isEmpty() && currentDirectory != null) {
-            for (File source : clipboardFiles) {
-                try {
-                    Path sourcePath = source.toPath();
-                    String fileName = source.getName();
-                    Path targetPath = currentDirectory.toPath().resolve(fileName);
+        // 1. 检查剪贴板和当前目录是否有效
+        if (clipboardFiles.isEmpty() || currentDirectory == null) {
+            showAlert("提示", "剪贴板为空或未选择目录！");
+            return;
+        }
 
-                    if (Files.exists(targetPath)) {
+        // 2. 遍历剪贴板中的所有文件
+        for (File source : clipboardFiles) {
+            try {
+                Path sourcePath = source.toPath();
+                String fileName = source.getName();
+                Path targetPath = currentDirectory.toPath().resolve(fileName);
+
+                // 3. 处理文件重名问题
+                if (Files.exists(targetPath)) {
+                    // 弹出对话框让用户选择操作
+                    ButtonType overwrite = new ButtonType("覆盖");
+                    ButtonType rename = new ButtonType("自动重命名");
+                    ButtonType cancel = new ButtonType("取消", ButtonBar.ButtonData.CANCEL_CLOSE);
+
+                    Alert conflictAlert = new Alert(Alert.AlertType.CONFIRMATION);
+                    conflictAlert.setTitle("文件冲突");
+                    conflictAlert.setHeaderText("文件 " + fileName + " 已存在！");
+                    conflictAlert.setContentText("请选择操作：");
+                    conflictAlert.getButtonTypes().setAll(overwrite, rename, cancel);
+
+                    Optional<ButtonType> result = conflictAlert.showAndWait();
+
+                    // 用户选择取消则跳过当前文件
+                    if (result.get() == cancel) continue;
+
+                    // 用户选择自动重命名
+                    if (result.get() == rename) {
                         fileName = getUniqueFileName(targetPath);
                         targetPath = currentDirectory.toPath().resolve(fileName);
                     }
-
-                    Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
-                } catch (IOException e) {
-                    e.printStackTrace();
                 }
+
+                // 4. 根据操作类型（复制/剪切）执行操作
+                if (isCutOperation) {
+                    Files.move(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+                    statusMessage.set("剪切成功: " + fileName);
+                } else {
+                    Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+                    statusMessage.set("复制成功: " + fileName);
+                }
+
+            } catch (AccessDeniedException e) {
+                showAlert("权限错误", "无法操作文件: " + e.getMessage());
+            } catch (IOException e) {
+                showAlert("操作失败", "文件操作出错: " + e.getMessage());
             }
-            loadThumbnails(currentDirectory);
         }
+
+        // 5. 操作完成后处理
+        clipboardFiles.clear(); // 清空剪贴板
+        isCutOperation = false; // 重置剪切标记
+        loadThumbnails(currentDirectory); // 刷新界面
+    }
+
+    // 辅助方法：显示错误对话框
+    private void showAlert(String title, String content) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(content);
+        alert.showAndWait();
     }
 
     private String getUniqueFileName(Path path) {
@@ -534,6 +655,59 @@ public class FileController implements Initializable {
             if (files != null && files.length > 0) {
                 openSlideshow(files[0]);
             }
+        }
+    }
+
+    private void accept(ButtonType response) {
+        if (response == ButtonType.OK) {
+            List<File> failedFiles = new ArrayList<>();
+
+            // 强制解除所有缩略图资源绑定
+            thumbnailPane.getChildren().forEach(node -> {
+                if (node instanceof VBox) {
+                    VBox vbox = (VBox) node;
+                    vbox.getChildren().forEach(child -> {
+                        if (child instanceof ImageView) {
+                            ImageView iv = (ImageView) child;
+                            iv.setImage(null); // 解除图像绑定
+                        }
+                    });
+                }
+            });
+
+            // 强制删除操作
+            for (File file : selectedFiles) {
+                try {
+                    // 方法 1：通过 FileChannel 强制解除锁定
+                    try (FileChannel channel = FileChannel.open(
+                            file.toPath(),
+                            StandardOpenOption.WRITE,
+                            StandardOpenOption.DELETE_ON_CLOSE)) {
+                        // 强制独占访问
+                    }
+
+                    // 方法 2：使用 NIO 删除（优先）
+                    Files.deleteIfExists(file.toPath());
+
+                } catch (IOException e) {
+                    // 终极方案：延迟删除（Windows 专用）
+                    if (System.getProperty("os.name").contains("Windows")) {
+                        try {
+                            Runtime.getRuntime().exec(
+                                    "cmd /c ping 127.0.0.1 -n 2 > nul && del /F /Q \""
+                                            + file.getAbsolutePath() + "\""
+                            );
+                        } catch (IOException ex) {
+                            failedFiles.add(file);
+                        }
+                    } else {
+                        failedFiles.add(file);
+                    }
+                }
+            }
+
+            // 刷新界面
+            Platform.runLater(() -> loadThumbnails(currentDirectory));
         }
     }
 }
