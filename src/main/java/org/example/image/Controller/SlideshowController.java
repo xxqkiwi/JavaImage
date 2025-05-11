@@ -70,7 +70,7 @@ public class SlideshowController implements Initializable {
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         setupSlideshowTimeline();
-       setupLayout();
+        setupLayout();
 
     }
 
@@ -87,13 +87,13 @@ public class SlideshowController implements Initializable {
         toolbar.setStyle("-fx-background-color: #f0f0f0;");
 
         // 添加关闭按钮
-        closeButton = new Button("关闭");
+        /*closeButton = new Button("关闭");
         closeButton.setOnAction(event -> {
             // 获取当前窗口并关闭
             Stage stage = (Stage) mainPane.getScene().getWindow();
             stage.close();
         });
-        toolbar.getChildren().add(closeButton);
+        toolbar.getChildren().add(closeButton);*/
 
         // 添加键盘事件支持
         mainPane.setOnKeyPressed(event->{
@@ -123,7 +123,7 @@ public class SlideshowController implements Initializable {
     private void setupSlideshowTimeline() {
         //每隔一秒触发一次
         slideshowTimeline = new Timeline(
-            new KeyFrame(Duration.seconds(1), event -> handleNext())
+                new KeyFrame(Duration.seconds(1), event -> handleNext())
         );
         slideshowTimeline.setCycleCount(Timeline.INDEFINITE);
     }
@@ -186,7 +186,7 @@ public class SlideshowController implements Initializable {
             updateImageViewSize();
         }*/
         //先计算目标缩放比例 targetScale，然后根据最大缩放比例 MAX_SCALE 和最小缩放比例 MIN_SCALE 判断是否执行缩放操作。
-       //每次执行缩放操作时，更新 currentScale 并调用 updateImageViewSize 方法来调整图片视图的大小
+        //每次执行缩放操作时，更新 currentScale 并调用 updateImageViewSize 方法来调整图片视图的大小
         double targetScale = currentScale * 1.2;
         if (targetScale <= MAX_SCALE) {
             currentScale = targetScale;
@@ -220,6 +220,15 @@ public class SlideshowController implements Initializable {
             isPlaying = true;
         }
     }
+    // 关闭按钮
+    @FXML
+    private void handleClose() {
+        // 获取当前窗口并关闭
+        Stage stage = (Stage) mainPane.getScene().getWindow();
+        stage.close();
+    }
+
+    //更新缩略图区域
     private void updatePreviewBar() throws FileNotFoundException {
         previewBox.getChildren().clear();
         // 计算显示的起始索引（确保不小于0）
@@ -227,8 +236,9 @@ public class SlideshowController implements Initializable {
         // 计算显示的结束索引（确保不超过图片总数）
         int endIndex = Math.min(imageFiles.size() - 1, currentIndex + 2);
 
+        //保证一行五个图片
         // 如果当前图片靠近开头，调整起始索引
-        if (currentIndex < 2) {
+        /*if (currentIndex < 2) {
             startIndex = 0;
             endIndex = Math.min(imageFiles.size() - 1, 4);
         }
@@ -236,37 +246,71 @@ public class SlideshowController implements Initializable {
         else if (currentIndex > imageFiles.size() - 3) {
             startIndex = Math.max(0, imageFiles.size() - 5);
             endIndex = imageFiles.size() - 1;
+        }*/
+        if (endIndex - startIndex < 4) {
+            startIndex = Math.max(0, endIndex - 4);
         }
+
+        final double THUMBNAIL_WIDTH = 70;
+        final double THUMBNAIL_HEIGHT = 70;
 
         for (int i = startIndex; i <= endIndex; i++) {
             File file = imageFiles.get(i);
-            ImageView thumb = new ImageView(new Image(new FileInputStream(file), 70, 70, true, true));
-            thumb.getStyleClass().add("preview-thumb");
+            //ImageView thumb = new ImageView(new Image(new FileInputStream(file), 70, 70, true, true));
+            //thumb.getStyleClass().add("preview-thumb");
+            ImageView thumb = new ImageView(new Image(
+                    new FileInputStream(file),
+                    THUMBNAIL_WIDTH,
+                    THUMBNAIL_HEIGHT,
+                    false,
+                    true
+            ));
+
+            thumb.setFitWidth(THUMBNAIL_WIDTH);
+            thumb.setFitHeight(THUMBNAIL_HEIGHT);
+            thumb.setPreserveRatio(false);
+            thumb.setSmooth(true);
+
+            StackPane thumbContainer = new StackPane();
+            thumbContainer.getChildren().add(thumb);
+            thumbContainer.getStyleClass().add("preview-thumb-container");
+
             if (i == currentIndex) {
-                thumb.getStyleClass().add("selected");
+                //thumb.getStyleClass().add("selected");
+                thumbContainer.getStyleClass().add("selected");
             }
             final int idx = i;
-            thumb.setOnMouseClicked(e -> {
+            //thumb.setOnMouseClicked(e -> {
+            thumbContainer.setOnMouseClicked(e -> {
                 currentIndex = idx;
-                loadCurrentImage();
-                updateStatus();
+                //loadCurrentImage();
+                //updateStatus();
                 try {
+                    loadCurrentImage();
+                    updateStatus();
                     updatePreviewBar();
                 } catch (FileNotFoundException ex) {
                     //throw new RuntimeException(ex);
-                    ex.printStackTrace();
+                    //ex.printStackTrace();
+                    // 处理文件不存在的情况
+                    System.err.println("无法加载图片: " + file.getAbsolutePath());
+                    System.err.println("错误信息: " + ex.getMessage());
+
+                    // 显示错误提示给用户
+                    statusLabel.setText("无法加载图片: " + file.getName());
                 }
             });
-            previewBox.getChildren().add(thumb);
+            //previewBox.getChildren().add(thumb);
+            previewBox.getChildren().add(thumbContainer);
         }
     }
 
     //缩放图片
     private void updateImageViewSize() {
         // 计算最大允许高度，防止遮挡工具栏和预览条
-      //  double maxHeight = IMAGE_AREA_HEIGHT;
-      //  imageView.setFitHeight(maxHeight * currentScale);
-      //  imageView.setFitWidth(800 * currentScale);
+        //  double maxHeight = IMAGE_AREA_HEIGHT;
+        //  imageView.setFitHeight(maxHeight * currentScale);
+        //  imageView.setFitWidth(800 * currentScale);
 
         if (imageView.getImage() == null) return;
 

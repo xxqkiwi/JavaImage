@@ -59,7 +59,7 @@
     -fx-padding: 10px;
     -fx-hgap: 15px;
     -fx-vgap: 15px;
-    -fx-alignment: center;
+    -fx-alignment: top-left;
 }
 
 /*目录树*/

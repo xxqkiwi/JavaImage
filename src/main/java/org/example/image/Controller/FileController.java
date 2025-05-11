@@ -102,7 +102,9 @@ public class FileController implements Initializable {
         directoryTree.setRoot(root);
         directoryTree.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null) {
-                File newDir = new File(newValue.getValue());
+                // 获取选中项的完整路径
+                String fullPath = getFullPath(newValue);
+                File newDir = new File(fullPath);
                 if (newDir.isDirectory()) {
                     if (currentDirectory != null) {
                         navigationHistory.push(currentDirectory);
@@ -116,13 +118,29 @@ public class FileController implements Initializable {
         });
     }
 
+    private String getFullPath(TreeItem<String> item) {
+        StringBuilder path = new StringBuilder();
+        TreeItem<String> current = item;
+        
+        while (current != null && current != directoryTree.getRoot()) {
+            if (path.length() > 0) {
+                path.insert(0, File.separator);
+            }
+            path.insert(0, current.getValue());
+            current = current.getParent();
+        }
+        
+        return path.toString();
+    }
+
     private void loadDirectoryTree(TreeItem<String> parentItem, File directory) {
         parentItem.getChildren().clear(); // 清除占位符
         File[] files = directory.listFiles();
         if (files != null) {
             for (File file : files) {
                 if (file.isDirectory()) {
-                    TreeItem<String> dirItem = new TreeItem<>(file.getAbsolutePath());
+                    // 只显示文件夹名称
+                    TreeItem<String> dirItem = new TreeItem<>(file.getName());
                     dirItem.setExpanded(false);
                     dirItem.getChildren().add(new TreeItem<>("Loading...")); // 添加占位符
                     TreeItem<String> finalDirItem = dirItem;
@@ -131,7 +149,6 @@ public class FileController implements Initializable {
                             loadDirectoryTree(finalDirItem, file); // 递归加载子目录
                         }
                     });
-                    //dirItem.setUserData(file.getAbsolutePath()); // 存储完整路径
                     parentItem.getChildren().add(dirItem);
                 }
             }
