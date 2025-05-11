@@ -14,7 +14,10 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.HBox;
 
 import java.io.*;
 import java.net.URL;
@@ -37,6 +40,10 @@ public class FileController implements Initializable {
     private Label statusMessageLabel;
     @FXML
     private Label statusMessageLabelText;
+    @FXML
+    private Slider zoomSlider;
+    @FXML
+    private HBox previewBox;
     private final ObservableList<File> selectedFiles = FXCollections.observableArrayList();
 
     private final StringProperty statusMessage = new SimpleStringProperty();
@@ -44,12 +51,14 @@ public class FileController implements Initializable {
     private File currentDirectory;
     private List<File> clipboardFiles = new ArrayList<>();
 
+
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         setupDirectoryTree();
         setupThumbnailPane();
         setupContextMenu();
         setupStatusBinding();
+        setupZoomSlider();
     }
 
     private void setupDirectoryTree() {
@@ -136,12 +145,12 @@ public class FileController implements Initializable {
                 selectionRectangle.setHeight(height);
 
                 for (javafx.scene.Node node : thumbnailPane.getChildren()) {
-                    if (node instanceof javafx.scene.layout.VBox) {
-                        javafx.scene.layout.VBox thumbnailBox = (javafx.scene.layout.VBox) node;
+                    if (node instanceof VBox) {
+                        VBox thumbnailBox = (VBox) node;
                         javafx.geometry.Bounds bounds = thumbnailBox.localToParent(thumbnailBox.getBoundsInLocal());
                         if (selectionRectangle.getBoundsInLocal().intersects(bounds)) {
                             File file = (File) thumbnailBox.getUserData();
-                            selectImage((ImageView) thumbnailBox.getChildren().get(0), file);
+                            selectImage(thumbnailBox, file);
                         }
                     }
                 }
@@ -158,36 +167,43 @@ public class FileController implements Initializable {
 
     private VBox createThumbnail(File file) {
         try {
-            // 创建一个新的图片对象，从给定的文件路径加载图片，设置图片的初始尺寸为100x100像素
-            Image image = new Image(new FileInputStream(file), 100, 100, true, true);
+            Image image = new Image(new FileInputStream(file), 150, 150, true, true);
             ImageView imageView = new ImageView(image);
-            imageView.setPreserveRatio(true); // 保持图片的原始宽高比
-            imageView.setSmooth(true); // 平滑缩放
-            imageView.setCache(true); // 图片缓存
+            imageView.getStyleClass().add("thumbnail-image");
+            imageView.setPreserveRatio(true);
+            imageView.setSmooth(true);
+            imageView.setCache(true);
 
-            // 创建一个新的Label对象，用于显示文件名
             Label label = new Label(file.getName());
+            label.getStyleClass().add("thumbnail-label");
+            label.setWrapText(true);
+            label.setMaxWidth(150);
+            label.setAlignment(Pos.CENTER);
 
-            label.setMaxWidth(100); // 设置Label的最大宽度，使其可以自动调整以适应最长的文件名
+            VBox vbox = new VBox();
+            vbox.getStyleClass().add("thumbnail-container");
+            vbox.setAlignment(Pos.CENTER);
+            vbox.setSpacing(5);
+            vbox.setPadding(new Insets(5));
+            vbox.setUserData(file);
 
-            // 创建一个新的VBox对象，将ImageView和Label作为子节点添加进去
-            VBox vbox = new VBox(imageView, label);
-            vbox.setAlignment(Pos.CENTER); // 设置VBox的对齐方式为居中
-            vbox.setSpacing(5); // 设置子节点之间的间距
+            // 创建一个容器来保持图片的宽高比
+            StackPane imageContainer = new StackPane();
+            imageContainer.setMaxSize(150, 150);
+            imageContainer.getChildren().add(imageView);
+            StackPane.setAlignment(imageView, Pos.CENTER);
 
-            // 设置VBox的padding，为ImageView和Label提供一些内边距
-            vbox.setPadding(new Insets(5, 5, 5, 5));
-
-            vbox.setUserData(file); // 存储文件对象
+            vbox.getChildren().addAll(imageContainer, label);
+            VBox.setVgrow(imageContainer, Priority.ALWAYS);
 
             vbox.setOnMouseClicked(event -> {
                 if (event.isControlDown()) {
-                    toggleSelection(imageView, file);
+                    toggleSelection(vbox, file);
                 } else if (event.getClickCount() == 2) {
                     openSlideshow(file);
                 } else {
                     clearSelection();
-                    selectImage(imageView, file);
+                    selectImage(vbox, file);
                 }
             });
 
@@ -205,12 +221,12 @@ public class FileController implements Initializable {
 
         vbox.setOnMouseClicked(event -> {
             if (event.isControlDown()) {
-                toggleSelection(imageView, file);
+                toggleSelection(vbox, file);
             } else if (event.getClickCount() == 2) {
                 openSlideshow(file);
             } else {
                 clearSelection();
-                selectImage(imageView, file);
+                selectImage(vbox, file);
             }
         });
         return vbox;
@@ -218,7 +234,7 @@ public class FileController implements Initializable {
 
     private void openSlideshow(File startFile) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Slideshow/slideshow-view.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/org/example/image/Slideshow/slideshow-view.fxml"));
             javafx.scene.Parent root = loader.load();
             SlideshowController controller = loader.getController();
 
@@ -260,6 +276,63 @@ public class FileController implements Initializable {
         infoLabel.textProperty().bind(statusMessage);
     }
 
+    private void setupZoomSlider() {
+        zoomSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+            double scale = newVal.doubleValue();
+            double baseWidth = 200.0; // 基础宽度
+            double baseHeight = 240.0; // 基础高度
+            double baseImageSize = 160.0; // 基础图片大小
+            double baseFontSize = 12.0; // 基础字体大小
+
+            // 计算新的尺寸
+            double newWidth = baseWidth * scale;
+            double newHeight = baseHeight * scale;
+            double newImageSize = baseImageSize * scale;
+            double newFontSize = baseFontSize * scale;
+
+            // 更新所有缩略图的样式
+            for (javafx.scene.Node node : thumbnailPane.getChildren()) {
+                if (node instanceof VBox) {
+                    VBox vbox = (VBox) node;
+                    vbox.setStyle(String.format(
+                        "-fx-min-width: %.0fpx; -fx-max-width: %.0fpx; " +
+                        "-fx-min-height: %.0fpx; -fx-max-height: %.0fpx;",
+                        newWidth, newWidth, newHeight, newHeight
+                    ));
+
+                    // 更新图片和文字大小
+                    for (javafx.scene.Node child : vbox.getChildren()) {
+                        if (child instanceof StackPane) {
+                            // 更新图片容器和图片大小
+                            StackPane imageContainer = (StackPane) child;
+                            imageContainer.setMaxSize(newImageSize, newImageSize);
+                            for (javafx.scene.Node imageNode : imageContainer.getChildren()) {
+                                if (imageNode instanceof ImageView) {
+                                    ImageView imageView = (ImageView) imageNode;
+                                    imageView.setFitWidth(newImageSize);
+                                    imageView.setFitHeight(newImageSize);
+                                }
+                            }
+                        } else if (child instanceof Label) {
+                            // 更新标签大小和字体
+                            Label label = (Label) child;
+                            label.setStyle(String.format(
+                                "-fx-font-size: %.1fpx; " +
+                                "-fx-min-height: %.0fpx; " +
+                                "-fx-pref-height: %.0fpx; " +
+                                "-fx-max-width: %.0fpx;",
+                                newFontSize,
+                                newHeight * 0.2, // 文字区域高度为容器高度的20%
+                                newHeight * 0.2,
+                                newImageSize
+                            ));
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     private void loadThumbnails(File directory) {
         thumbnailPane.getChildren().clear();
         selectedFiles.clear();
@@ -269,45 +342,45 @@ public class FileController implements Initializable {
             File[] files = directory.listFiles((dir, name) -> imagePattern.matcher(name).matches());
 
             if (files != null) {
-               // statusMessage.set("找到 " + files.length + " 张图片，总大小: " + calculateTotalSize(files) + " KB");
-                statusMessageLabel.setText("找到 " + files.length + " 张图片，总大小: " + calculateTotalSize(files) + " KB");
                 for (File file : files) {
                     VBox thumbnail = createThumbnail(file);
                     thumbnailPane.getChildren().add(thumbnail);
                 }
+                updateStatusMessage();
             }
         }
     }
 
-    private void toggleSelection(ImageView imageView, File file) {
+    private void toggleSelection(VBox vbox, File file) {
         if (selectedFiles.contains(file)) {
             selectedFiles.remove(file);
-            imageView.setStyle("-fx-border-color: none;");
+            vbox.getStyleClass().remove("selected");
         } else {
             selectedFiles.add(file);
-            imageView.setStyle("-fx-border-color: blue; -fx-border-width: 2px;");
+            vbox.getStyleClass().add("selected");
         }
         updateStatusMessage();
     }
 
-    private void selectImage(ImageView imageView, File file) {
+    private void selectImage(VBox vbox, File file) {
         selectedFiles.add(file);
-        imageView.setStyle("-fx-border-color: blue; -fx-border-width: 2px;");
+        vbox.getStyleClass().add("selected");
         updateStatusMessage();
     }
 
     private void clearSelection() {
         selectedFiles.clear();
         for (javafx.scene.Node node : thumbnailPane.getChildren()) {
-            if (node instanceof ImageView) {
-                ((ImageView) node).setStyle("-fx-border-color: none;");
+            if (node instanceof VBox) {
+                ((VBox) node).getStyleClass().remove("selected");
             }
         }
         updateStatusMessage();
     }
 
     private void updateStatusMessage() {
-        statusMessageLabelText.setText("选中 " + selectedFiles.size() + " 张图片");
+        statusMessageLabel.setText(String.format("找到 %d 张图片", thumbnailPane.getChildren().size()));
+        statusMessageLabelText.setText(String.format("选中 %d 张图片", selectedFiles.size()));
     }
 
     private long calculateTotalSize(File[] files) {
@@ -463,8 +536,4 @@ public class FileController implements Initializable {
             }
         }
     }
-
-    // private void openSlideshow(File startFile) {
-    // 实现幻灯片播放窗口
-    // }
 }

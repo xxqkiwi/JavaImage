@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.VBox?>
+<BorderPane prefHeight="656.0" prefWidth="899.0" styleClass="slideshow-root" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.example.image.Controller.SlideshowController">
+    <center>
+        <StackPane styleClass="image-container">
+            <ImageView fx:id="imageView" fitHeight="600" fitWidth="800" preserveRatio="true" smooth="true" styleClass="slideshow-image" />
+        </StackPane>
+    </center>
+    <bottom>
+        <VBox spacing="0">
+            <HBox alignment="CENTER" spacing="10" styleClass="control-bar">
+                <padding>
+                    <Insets bottom="10" left="10" right="10" top="10" />
+                </padding>
+                <Button fx:id="prevButton" onAction="#handlePrev" styleClass="control-button">
+                    <graphic>
+                        <ImageView fitHeight="24" fitWidth="24" preserveRatio="true">
+                            <image>
+                                <Image url="@../../../../imgs/icons/左.png" />
+                            </image>
+                        </ImageView>
+                    </graphic>
+                </Button>
+                <Button fx:id="nextButton" onAction="#handleNext" styleClass="control-button">
+                    <graphic>
+                        <ImageView fitHeight="24" fitWidth="24" preserveRatio="true">
+                            <image>
+                                <Image url="@../../../../imgs/icons/右.png" />
+                            </image>
+                        </ImageView>
+                    </graphic>
+                </Button>
+                <Button fx:id="zoomInButton" onAction="#handleZoomIn" styleClass="control-button">
+                    <graphic>
+                        <Label styleClass="zoom-label" text="+" />
+                    </graphic>
+                </Button>
+                <Button fx:id="zoomOutButton" onAction="#handleZoomOut" styleClass="control-button">
+                    <graphic>
+                        <Label styleClass="zoom-label" text="-" />
+                    </graphic>
+                </Button>
+                <Button fx:id="playButton" onAction="#handlePlay" styleClass="control-button">
+                    <graphic>
+                        <Label styleClass="play-label" text="播放" />
+                    </graphic>
+                </Button>
+                <Label fx:id="statusLabel" styleClass="status-label" />
+            </HBox>
+            <ScrollPane fitToHeight="true" fitToWidth="true" hbarPolicy="ALWAYS" vbarPolicy="NEVER" styleClass="preview-bar">
+                <HBox fx:id="previewBox" spacing="5" alignment="CENTER_LEFT" styleClass="preview-box"/>
+            </ScrollPane>
+        </VBox>
+    </bottom>
+</BorderPane>
