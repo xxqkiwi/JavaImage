@@ -69,10 +69,11 @@ public class FileController implements Initializable {
     private File currentDirectory;
     private List<File> clipboardFiles = new ArrayList<>();
 
-    private javafx.scene.shape.Rectangle selectionRectangle;
     private double dragStartX, dragStartY;
     private Stack<File> navigationHistory = new Stack<>();
     private Stack<File> forwardHistory = new Stack<>();
+
+    private ContextMenu contextMenu;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -225,37 +226,22 @@ public class FileController implements Initializable {
     private void setupThumbnailPane() {
         thumbnailPane.setOnMousePressed(event -> {
             if (event.isPrimaryButtonDown() && event.getTarget() == thumbnailPane) {
-                clearSelection();
                 if (!event.isControlDown()) {
-                    dragStartX = event.getX();
-                    dragStartY = event.getY();
-                    if (selectionRectangle == null) {
-                        selectionRectangle = new javafx.scene.shape.Rectangle();
-                        selectionRectangle.setStroke(javafx.scene.paint.Color.BLUE);
-                        selectionRectangle.setFill(javafx.scene.paint.Color.LIGHTBLUE.deriveColor(1, 1, 1, 0.3));
-                        thumbnailPane.getChildren().add(selectionRectangle);
-                    }
+                    clearSelection();
                 }
+                dragStartX = event.getX();
+                dragStartY = event.getY();
             }
         });
 
         thumbnailPane.setOnMouseDragged(event -> {
-            if (selectionRectangle != null) {
-                double x = Math.min(dragStartX, event.getX());
-                double y = Math.min(dragStartY, event.getY());
-                double width = Math.abs(event.getX() - dragStartX);
-                double height = Math.abs(event.getY() - dragStartY);
-                selectionRectangle.setX(x);
-                selectionRectangle.setY(y);
-                selectionRectangle.setWidth(width);
-                selectionRectangle.setHeight(height);
-
-                for (javafx.scene.Node node : thumbnailPane.getChildren()) {
-                    if (node instanceof VBox) {
-                        VBox thumbnailBox = (VBox) node;
-                        javafx.geometry.Bounds bounds = thumbnailBox.localToParent(thumbnailBox.getBoundsInLocal());
-                        if (selectionRectangle.getBoundsInLocal().intersects(bounds)) {
-                            File file = (File) thumbnailBox.getUserData();
+            for (javafx.scene.Node node : thumbnailPane.getChildren()) {
+                if (node instanceof VBox) {
+                    VBox thumbnailBox = (VBox) node;
+                    javafx.geometry.Bounds bounds = thumbnailBox.localToParent(thumbnailBox.getBoundsInLocal());
+                    if (bounds.contains(event.getX(), event.getY())) {
+                        File file = (File) thumbnailBox.getUserData();
+                        if (!selectedFiles.contains(file)) {
                             selectImage(thumbnailBox, file);
                         }
                     }
@@ -263,17 +249,16 @@ public class FileController implements Initializable {
             }
         });
 
-        thumbnailPane.setOnMouseReleased(event -> {
-            if (selectionRectangle != null) {
-                thumbnailPane.getChildren().remove(selectionRectangle);
-                selectionRectangle = null;
+        thumbnailPane.setOnMouseClicked(event -> {
+            if (event.getTarget() == thumbnailPane) {
+                clearSelection();
             }
         });
     }
 
     private VBox createThumbnail(File file) {
-        try {
-            Image image = new Image(new FileInputStream(file), 150, 150, true, true);
+        try(FileInputStream fis = new FileInputStream(file)) {
+            Image image = new Image(fis, 150, 150, true, true);
             ImageView imageView = new ImageView(image);
             imageView.getStyleClass().add("thumbnail-image");
             imageView.setPreserveRatio(true);
@@ -314,7 +299,7 @@ public class FileController implements Initializable {
             });
 
             return vbox;
-        } catch (FileNotFoundException e) {
+        } catch (IOException e) {
             e.printStackTrace();
             return null;
         }
@@ -360,58 +345,9 @@ public class FileController implements Initializable {
     }
 
     private boolean isCutOperation = false; // true表示剪切，false表示复制
-    private void setupThumbnailPane() {
-        thumbnailPane.setOnMousePressed(event -> {
-            if (event.isPrimaryButtonDown() && event.getTarget() == thumbnailPane) {
-                clearSelection();
-                if (!event.isControlDown()) {
-                    dragStartX = event.getX();
-                    dragStartY = event.getY();
-                    if (selectionRectangle == null) {
-                        selectionRectangle = new javafx.scene.shape.Rectangle();
-                        selectionRectangle.setStroke(javafx.scene.paint.Color.BLUE);
-                        selectionRectangle.setFill(javafx.scene.paint.Color.LIGHTBLUE.deriveColor(1, 1, 1, 0.3));
-                        thumbnailPane.getChildren().add(selectionRectangle);
-                    }
-                }
-            }
-        });
-
-        thumbnailPane.setOnMouseDragged(event -> {
-            if (selectionRectangle != null) {
-                double x = Math.min(dragStartX, event.getX());
-                double y = Math.min(dragStartY, event.getY());
-                double width = Math.abs(event.getX() - dragStartX);
-                double height = Math.abs(event.getY() - dragStartY);
-                selectionRectangle.setX(x);
-                selectionRectangle.setY(y);
-                selectionRectangle.setWidth(width);
-                selectionRectangle.setHeight(height);
-
-                for (javafx.scene.Node node : thumbnailPane.getChildren()) {
-                    if (node instanceof VBox) {
-                        VBox thumbnailBox = (VBox) node;
-                        javafx.geometry.Bounds bounds = thumbnailBox.localToParent(thumbnailBox.getBoundsInLocal());
-                        if (selectionRectangle.getBoundsInLocal().intersects(bounds)) {
-                            File file = (File) thumbnailBox.getUserData();
-                            selectImage(thumbnailBox, file);
-                        }
-                    }
-                }
-            }
-        });
-
-        thumbnailPane.setOnMouseReleased(event -> {
-            if (selectionRectangle != null) {
-                thumbnailPane.getChildren().remove(selectionRectangle);
-                selectionRectangle = null;
-            }
-        });
-
-    }
 
     private void setupContextMenu() {
-        ContextMenu contextMenu = new ContextMenu();
+        contextMenu = new ContextMenu();
 
         MenuItem copyItem = new MenuItem("复制");
         copyItem.setOnAction(this::handleCopy);
@@ -428,7 +364,7 @@ public class FileController implements Initializable {
         MenuItem deleteItem = new MenuItem("删除");
         deleteItem.setOnAction(this::handleDelete);
 
-        contextMenu.getItems().addAll(copyItem, cutItem, pasteItem, renameItem, deleteItem);
+        contextMenu.getItems().setAll(copyItem, cutItem, pasteItem, renameItem, deleteItem);
 
         thumbnailPane.setOnContextMenuRequested(event -> {
             boolean hasSelection = !selectedFiles.isEmpty();
@@ -441,6 +377,16 @@ public class FileController implements Initializable {
             pasteItem.setDisable(!canPaste);
 
             contextMenu.show(thumbnailPane, event.getScreenX(), event.getScreenY());
+            event.consume();
+        });
+
+        // 自动收起菜单
+        Platform.runLater(() -> {
+            thumbnailPane.getScene().addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, e -> {
+                if (contextMenu.isShowing() && e.getButton() != javafx.scene.input.MouseButton.SECONDARY) {
+                    contextMenu.hide();
+                }
+            });
         });
     }
 
@@ -514,6 +460,7 @@ public class FileController implements Initializable {
         updateNavigationButtons();
     }
 
+    //文件导航
     private void navigateBack() {
         if (!navigationHistory.isEmpty()) {
             File currentDir = currentDirectory;
@@ -611,16 +558,16 @@ public class FileController implements Initializable {
 
     private void updateStatusMessage() {
         long totalSize = 0;
+        int imageCount = 0;
         for (javafx.scene.Node node : thumbnailPane.getChildren()) {
-            if (node instanceof VBox) {
+            if (node instanceof VBox && node.getUserData() instanceof File) {
                 File file = (File) node.getUserData();
                 totalSize += file.length();
+                imageCount++;
             }
         }
-
         String sizeText = formatFileSize(totalSize);
-        statusMessageLabel.setText(String.format("找到 %d 张图片，总大小: %s",
-            thumbnailPane.getChildren().size(), sizeText));
+        statusMessageLabel.setText(String.format("找到 %d 张图片，总大小: %s", imageCount, sizeText));
         statusMessageLabelText.setText(String.format("选中 %d 张图片", selectedFiles.size()));
     }
 
@@ -657,8 +604,8 @@ public class FileController implements Initializable {
 
 
 
-   @FXML
-   private void handleDelete(ActionEvent event) {
+    @FXML
+    private void handleDelete(ActionEvent event) {
         if (!selectedFiles.isEmpty()) {
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
             alert.setTitle("确认删除");
@@ -666,40 +613,43 @@ public class FileController implements Initializable {
             Optional<ButtonType> result = alert.showAndWait();
 
             if (result.isPresent() && result.get() == ButtonType.OK) {
+                // 1. 彻底移除缩略图节点
+                thumbnailPane.getChildren().removeIf(node -> {
+                    if (node instanceof VBox) {
+                        File f = (File) ((VBox) node).getUserData();
+                        return selectedFiles.contains(f);
+                    }
+                    return false;
+                });
 
+                // 2. 尝试解除ImageView绑定
                 for (File file : selectedFiles) {
+                    // 这里其实已经没有ImageView引用了
+                }
 
+                // 3. 强制GC
+                System.gc();
+
+                // 4. 删除文件
+                List<File> failedFiles = new ArrayList<>();
+                for (File file : selectedFiles) {
                     try {
-                        // 尝试直接删除文件
-                        System.out.println("delete");
-                        Files.delete(file.toPath());
-                        System.out.println("delete2");
-                    } catch (FileSystemException e) {
-                        showAlert("删除延迟", "无法删除文件1: " + e.getMessage());
-                        // 如果文件被占用，尝试延迟删除
-                        if (System.getProperty("os.name").contains("Windows")) {
-                            try {
-                                // 使用 cmd 命令延迟删除文件
-                                System.out.println("delay");
-                                Runtime.getRuntime().exec(
-                                        "cmd /c choice /c Y /n /d Y /t 2 > nul & del /F /Q \"" + file.getAbsolutePath() + "\"");
-                                System.out.println("sb");
-                            } catch (IOException ex) {
-                                System.out.println("sb1");
-                                showAlert("延迟删除失败", "无法执行延迟删除命令: " + ex.getMessage());
-                                System.out.println("sb2");
-                            }
-                        } else {
-                            // 对于非 Windows 系统，可以尝试其他方法
-                            System.out.println("sb3");
-                            showAlert("删除失败", "文件被占用，无法删除: " + e.getMessage());
-                            System.out.println("sb4");
-                        }
+                        Files.deleteIfExists(file.toPath());
                     } catch (IOException e) {
-                        showAlert("删除失败", "无法删除文件2: " + e.getMessage());
+                        failedFiles.add(file);
                     }
                 }
+
+                // 5. 刷新
                 loadThumbnails(currentDirectory);
+
+                if (!failedFiles.isEmpty()) {
+                    StringBuilder message = new StringBuilder("以下文件删除失败：\n");
+                    for (File file : failedFiles) {
+                        message.append(file.getName()).append("\n");
+                    }
+                    showAlert("删除结果", message.toString());
+                }
             }
         }
     }
@@ -807,47 +757,46 @@ public class FileController implements Initializable {
     private void handleRename(ActionEvent event) {
         if (!selectedFiles.isEmpty()) {
             if (selectedFiles.size() == 1) {
-                TextInputDialog dialog = new TextInputDialog(selectedFiles.get(0).getName());
+                File file = selectedFiles.get(0);
+                String nameWithoutExt = file.getName();
+                int dot = nameWithoutExt.lastIndexOf('.');
+                if (dot > 0) nameWithoutExt = nameWithoutExt.substring(0, dot);
+                TextInputDialog dialog = new TextInputDialog(nameWithoutExt);
                 dialog.setTitle("重命名文件");
-                dialog.setHeaderText("输入新的文件名");
+                dialog.setHeaderText("输入新的文件名（不含后缀）");
                 dialog.setContentText("文件名:");
-
                 Optional<String> result = dialog.showAndWait();
                 if (result.isPresent()) {
-                    renameFile(selectedFiles.get(0), result.get());
+                    String ext = getFileExtension(file);
+                    renameFile(file, result.get() + ext);
                 }
             } else {
                 // 批量重命名
                 TextInputDialog prefixDialog = new TextInputDialog("NewName");
                 prefixDialog.setTitle("批量重命名");
-                prefixDialog.setHeaderText("输入名称前缀");
+                prefixDialog.setHeaderText("输入名称前缀（不含后缀）");
                 prefixDialog.setContentText("前缀:");
-
                 Optional<String> prefixResult = prefixDialog.showAndWait();
                 if (prefixResult.isPresent()) {
                     String prefix = prefixResult.get();
-
                     TextInputDialog startIndexDialog = new TextInputDialog("1");
                     startIndexDialog.setTitle("批量重命名");
                     startIndexDialog.setHeaderText("输入起始编号");
                     startIndexDialog.setContentText("起始编号:");
-
                     Optional<String> startIndexResult = startIndexDialog.showAndWait();
                     if (startIndexResult.isPresent()) {
                         int startIndex = Integer.parseInt(startIndexResult.get());
-
                         TextInputDialog digitCountDialog = new TextInputDialog("4");
                         digitCountDialog.setTitle("批量重命名");
                         digitCountDialog.setHeaderText("输入编号位数");
                         digitCountDialog.setContentText("编号位数:");
-
                         Optional<String> digitCountResult = digitCountDialog.showAndWait();
                         if (digitCountResult.isPresent()) {
                             int digitCount = Integer.parseInt(digitCountResult.get());
-
                             int index = startIndex;
                             for (File file : selectedFiles) {
-                                String newName = prefix + String.format("%0" + digitCount + "d", index) + getFileExtension(file);
+                                String ext = getFileExtension(file);
+                                String newName = prefix + String.format("%0" + digitCount + "d", index) + ext;
                                 renameFile(file, newName);
                                 index++;
                             }

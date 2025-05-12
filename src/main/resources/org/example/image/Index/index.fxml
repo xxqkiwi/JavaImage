@@ -79,7 +79,7 @@
                                 <FlowPane fx:id="thumbnailPane" hgap="15" prefWrapLength="650.0" styleClass="flow-pane" vgap="15" />
                             </content>
                         </ScrollPane>
-                  <Separator layoutX="-2.0" layoutY="62.0" prefHeight="8.0" prefWidth="674.0" />
+                        <Separator layoutX="-2.0" layoutY="62.0" prefHeight="8.0" prefWidth="674.0" />
                     </children>
                 </AnchorPane>
             </items>
