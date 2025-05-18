@@ -239,7 +239,7 @@ public class FileController implements Initializable {
                 if (node instanceof VBox) {
                     VBox thumbnailBox = (VBox) node;
                     javafx.geometry.Bounds bounds = thumbnailBox.localToParent(thumbnailBox.getBoundsInLocal());
-                    if (bounds.contains(event.getX(), event.getY())) {
+                    if (bounds.contains(event.getX(),event.getY())) {
                         File file = (File) thumbnailBox.getUserData();
                         if (!selectedFiles.contains(file)) {
                             selectImage(thumbnailBox, file);
@@ -250,10 +250,10 @@ public class FileController implements Initializable {
         });
 
         thumbnailPane.setOnMouseClicked(event -> {
-            if (event.getTarget() == thumbnailPane) {
-                clearSelection();
-            }
-        });
+           if (event.getTarget() == thumbnailPane) {
+              clearSelection();
+           }
+       });
     }
 
     private VBox createThumbnail(File file) {
@@ -507,7 +507,7 @@ public class FileController implements Initializable {
 
         if (directory.isDirectory()) {
             currentDirectory = directory;
-            selectedDirLabel.setText("当前目录: " + directory.getAbsolutePath());
+            selectedDirLabel.setText("当前文件: " + directory.getName());
             pathField.setText(directory.getAbsolutePath());
 
             String searchText = searchField.getText();
@@ -543,10 +543,12 @@ public class FileController implements Initializable {
     private void selectImage(VBox vbox, File file) {
         selectedFiles.add(file);
         vbox.getStyleClass().add("selected");
+      //  System.out.println("Selected file: " + file.getName() + ", selected count: " + selectedFiles.size());
         updateStatusMessage();
     }
 
     private void clearSelection() {
+      //  System.out.println("Clearing selection, before count: " + selectedFiles.size());
         selectedFiles.clear();
         for (javafx.scene.Node node : thumbnailPane.getChildren()) {
             if (node instanceof VBox) {

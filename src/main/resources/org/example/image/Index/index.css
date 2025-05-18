@@ -152,3 +152,10 @@
     -fx-opacity: 0.5;
     -fx-cursor: default;
 }
+
+/* 选择矩形内的临时高亮样式 */
+.thumbnail-container.selection-highlight {
+    -fx-border-color: #4682B4;
+    -fx-border-width: 2px;
+    -fx-border-style: dashed;
+}

@@ -2,6 +2,7 @@ package org.example.image.Controller;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
@@ -54,13 +55,15 @@ public class SlideshowController implements Initializable {
 
 
 
-
     private List<File> imageFiles; //存储图片列表
     private int currentIndex;
     private double currentScale = 1.0; //缩放比例
     private Timeline slideshowTimeline; //自动播放的时间
     private boolean isPlaying = false; //是否自动播放
+    private boolean initialLayoutComplete = false;
 
+
+    private final double ZOOM_FACTOR = 1.2; // 缩放因子
     private final double MAX_SCALE = 2.5; // 最大放大倍数
     private final double MIN_SCALE = 0.2; // 最小缩小倍数
     private final double IMAGE_AREA_HEIGHT = 600; // 主图区域高度
@@ -71,29 +74,56 @@ public class SlideshowController implements Initializable {
     public void initialize(URL url, ResourceBundle resourceBundle) {
         setupSlideshowTimeline();
         setupLayout();
+        setupInitializationListener();
+        setupListeners();
 
+    }
+    //新增
+    private void setupInitializationListener() {
+        // 监听场景和窗口初始化完成
+        mainPane.sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene != null) {
+                newScene.windowProperty().addListener((wObs, oldWindow, newWindow) -> {
+                    if (newWindow != null) {
+                        // 窗口显示后延迟执行，确保所有组件已布局
+                        newWindow.setOnShown(e -> Platform.runLater(() -> {
+                            initialLayoutComplete = true;
+                            resetScale();
+                            updateImageViewSize();
+                        }));
+                    }
+                });
+            }
+        });
+    }
+
+
+    private void setupListeners() {
+        // 监听窗口尺寸变化，自动调整图片大小
+        mainPane.widthProperty().addListener((obs, oldVal, newVal) -> updateImageViewSize());
+        mainPane.heightProperty().addListener((obs, oldVal, newVal) -> updateImageViewSize());
+
+        // 新增，监听工具栏和预览条尺寸变化
+        toolbar.heightProperty().addListener((obs, oldVal, newVal) -> updateImageViewSize());
+        previewBox.heightProperty().addListener((obs, oldVal, newVal) -> updateImageViewSize());
     }
 
     private void setupLayout(){
         // 设置图片容器和滚动面板
-        imageScrollPane.setFitToWidth(true);
-        imageScrollPane.setFitToHeight(true);
-        imageContainer.setPrefSize(800,600);//设置默认大小
+        //imageScrollPane.setFitToWidth(true);
+       // imageScrollPane.setFitToHeight(true);
+       // imageContainer.setPrefSize(800,600);//设置默认大小
+
+        // 修改，设置图片容器和滚动面板
+        imageScrollPane.setFitToWidth(false); // 关键修改：不要强制适应宽度
+        imageScrollPane.setFitToHeight(false); // 关键修改：不要强制适应高度
+
 
         // 设置工具栏样式，固定在底部中央
         toolbar.setAlignment(Pos.CENTER);
         toolbar.setPadding(new Insets(10));
         toolbar.setSpacing(10);
         toolbar.setStyle("-fx-background-color: #f0f0f0;");
-
-        // 添加关闭按钮
-        /*closeButton = new Button("关闭");
-        closeButton.setOnAction(event -> {
-            // 获取当前窗口并关闭
-            Stage stage = (Stage) mainPane.getScene().getWindow();
-            stage.close();
-        });
-        toolbar.getChildren().add(closeButton);*/
 
         // 添加键盘事件支持
         mainPane.setOnKeyPressed(event->{
@@ -133,11 +163,76 @@ public class SlideshowController implements Initializable {
             File currentFile = imageFiles.get(currentIndex);
             Image image = new Image(new FileInputStream(currentFile));
             imageView.setImage(image);
-            imageView.setFitWidth(800 * currentScale);
-            imageView.setFitHeight(600 * currentScale);
+            //重置缩放比例为初始值
+            //    resetScale();
+             //   updateImageViewSize();
+
+
+            // 仅在初始布局完成后重置缩放
+            if (initialLayoutComplete) {
+                resetScale();
+                updateImageViewSize();
+            }
+           // imageView.setFitWidth(800 * currentScale);
+            //imageView.setFitHeight(600 * currentScale);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
+    }
+
+    // 重置缩放比例为初始适应值
+    private void resetScale() {
+       /* if (imageView.getImage() == null) return;
+
+        // 计算可用空间（减去工具栏和预览条的高度）
+        double availableWidth = mainPane.getWidth();
+        double availableHeight = mainPane.getHeight() - toolbar.getPrefHeight() - previewBox.getPrefHeight();
+
+        double imageWidth = imageView.getImage().getWidth();
+        double imageHeight = imageView.getImage().getHeight();
+
+        // 计算能使图片完全显示的缩放比例
+        double scaleX = availableWidth / imageWidth;
+        double scaleY = availableHeight / imageHeight;
+
+        // 使用较小的缩放比例，确保图片能完整显示
+        currentScale = Math.min(scaleX, scaleY);
+
+        // 确保缩放比例在合理范围内
+        currentScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, currentScale));
+
+        */
+        if (imageView.getImage() == null || !initialLayoutComplete) return;
+
+        // 获取窗口实际尺寸
+        Stage stage = (Stage) mainPane.getScene().getWindow();
+        double windowWidth = stage.getWidth();
+        double windowHeight = stage.getHeight();
+
+        // 计算可用空间（扣除工具栏、预览条和边框内边距）
+        double contentWidth = windowWidth - mainPane.getPadding().getLeft() - mainPane.getPadding().getRight();
+        double contentHeight = windowHeight - toolbar.getHeight() - previewBox.getHeight()
+                - mainPane.getPadding().getTop() - mainPane.getPadding().getBottom();
+
+        // 确保可用空间有效
+        contentWidth = Math.max(100, contentWidth);
+        contentHeight = Math.max(100, contentHeight);
+
+        double imageWidth = imageView.getImage().getWidth();
+        double imageHeight = imageView.getImage().getHeight();
+
+        // 计算宽高方向的缩放比例
+        double scaleX = contentWidth / imageWidth;
+        double scaleY = contentHeight / imageHeight;
+
+        // 取较小比例确保完整显示
+        currentScale = Math.min(scaleX, scaleY);
+
+        // 限制缩放范围
+        currentScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, currentScale));
+
+
+
     }
 
     private void updateStatus() {
@@ -180,32 +275,55 @@ public class SlideshowController implements Initializable {
 
     @FXML
     private void handleZoomIn() {
-       /* if (currentScale < MAX_SCALE) {
+        // 统一缩放逻辑，先计算新比例再检查边界
+       // currentScale *= ZOOM_FACTOR;
+        //currentScale = Math.min(currentScale, MAX_SCALE);
+       // updateImageViewSize();
+
+        currentScale = Math.min(currentScale * ZOOM_FACTOR, MAX_SCALE);
+        updateImageViewSize();
+
+
+
+
+
+
+       /*if (currentScale < MAX_SCALE) {
             currentScale *= 1.2;
             if (currentScale > MAX_SCALE) currentScale = MAX_SCALE;
             updateImageViewSize();
         }*/
         //先计算目标缩放比例 targetScale，然后根据最大缩放比例 MAX_SCALE 和最小缩放比例 MIN_SCALE 判断是否执行缩放操作。
         //每次执行缩放操作时，更新 currentScale 并调用 updateImageViewSize 方法来调整图片视图的大小
-        double targetScale = currentScale * 1.2;
+      /*  double targetScale = currentScale * 1.2;
         if (targetScale <= MAX_SCALE) {
             currentScale = targetScale;
             updateImageViewSize();
-        }
+        }*/
     }
 
     @FXML
     private void handleZoomOut() {
-        /*if (currentScale > MIN_SCALE) {
+        // 统一缩放逻辑，先计算新比例再检查边界
+        //currentScale /= ZOOM_FACTOR;
+       // currentScale = Math.max(currentScale, MIN_SCALE);
+       // updateImageViewSize();
+        currentScale = Math.max(currentScale / ZOOM_FACTOR, MIN_SCALE);
+        updateImageViewSize();
+
+
+
+
+       /* if (currentScale > MIN_SCALE) {
             currentScale /= 1.2;
             if (currentScale < MIN_SCALE) currentScale = MIN_SCALE;
             updateImageViewSize();
         }*/
-        double targetScale = currentScale / 1.2;
+      /*  double targetScale = currentScale / 1.2;
         if (targetScale >= MIN_SCALE) {
             currentScale = targetScale;
             updateImageViewSize();
-        }
+        }*/
     }
 
     @FXML
@@ -307,38 +425,53 @@ public class SlideshowController implements Initializable {
 
     //缩放图片
     private void updateImageViewSize() {
-        // 计算最大允许高度，防止遮挡工具栏和预览条
-        //  double maxHeight = IMAGE_AREA_HEIGHT;
-        //  imageView.setFitHeight(maxHeight * currentScale);
-        //  imageView.setFitWidth(800 * currentScale);
+      /*  if (imageView.getImage() == null) return;
 
-        if (imageView.getImage() == null) return;
+        // 获取图片和容器信息
+        double imageWidth = imageView.getImage().getWidth();
+        double imageHeight = imageView.getImage().getHeight();
+        double imageRatio = imageWidth / imageHeight;
 
-        double imageRatio = imageView.getImage().getWidth() / imageView.getImage().getHeight();
-        double containerWidth = imageContainer.getWidth();
-        double containerHeight = imageContainer.getHeight();
+        // 计算可用空间（减去工具栏和预览条的高度）
+        double availableWidth = mainPane.getWidth();
+        double availableHeight = mainPane.getHeight() - toolbar.getPrefHeight() - previewBox.getPrefHeight();
 
-        // 计算基于容器的最佳尺寸
-        double scaledWidth = containerWidth * currentScale;
-        double scaledHeight = containerHeight * currentScale;
+        // 计算基于当前缩放比例的目标尺寸
+        double targetWidth = availableWidth * currentScale;
+        double targetHeight = availableHeight * currentScale;
 
         // 保持图片比例
-        if (scaledWidth / scaledHeight > imageRatio) {
-            scaledWidth = scaledHeight * imageRatio;
+        if (targetWidth / targetHeight > imageRatio) {
+            targetWidth = targetHeight * imageRatio;
         } else {
-            scaledHeight = scaledWidth / imageRatio;
+            targetHeight = targetWidth / imageRatio;
         }
 
-      /*  // 保持图片比例
-        if(scaledWidth /scaledHeight >imageRatio){
-            scaledWidth =scaledHeight *imageRatio ;
+        // 应用尺寸并居中显示
+        imageView.setFitWidth(targetWidth);
+        imageView.setFitHeight(targetHeight);
+        imageContainer.setAlignment(Pos.CENTER);
 
-        }else{
-            scaledHeight =scaledWidth *imageRatio ;
-        }*/
+       */
 
+        if (imageView.getImage() == null || !initialLayoutComplete) return;
+
+        // 获取图片原始尺寸
+        double imageWidth = imageView.getImage().getWidth();
+        double imageHeight = imageView.getImage().getHeight();
+
+        // 计算缩放后的尺寸
+        double scaledWidth = imageWidth * currentScale;
+        double scaledHeight = imageHeight * currentScale;
+
+        // 应用缩放后的尺寸
         imageView.setFitWidth(scaledWidth);
         imageView.setFitHeight(scaledHeight);
+
+        // 居中显示
+        imageContainer.setAlignment(Pos.CENTER);
+
+
     }
 
 }
