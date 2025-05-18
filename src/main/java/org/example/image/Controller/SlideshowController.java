@@ -110,34 +110,68 @@ public class SlideshowController implements Initializable {
 
     private void setupLayout(){
         // 设置图片容器和滚动面板
-        //imageScrollPane.setFitToWidth(true);
-       // imageScrollPane.setFitToHeight(true);
-       // imageContainer.setPrefSize(800,600);//设置默认大小
-
-        // 修改，设置图片容器和滚动面板
-        imageScrollPane.setFitToWidth(false); // 关键修改：不要强制适应宽度
-        imageScrollPane.setFitToHeight(false); // 关键修改：不要强制适应高度
-
+        imageScrollPane.setFitToWidth(false);
+        imageScrollPane.setFitToHeight(false);
 
         // 设置工具栏样式，固定在底部中央
         toolbar.setAlignment(Pos.CENTER);
         toolbar.setPadding(new Insets(10));
         toolbar.setSpacing(10);
-        toolbar.setStyle("-fx-background-color: #f0f0f0;");
+        //toolbar.setStyle("-fx-background-color: #f0f0f0;");
+
+        // 设置按钮焦点遍历
+        setupButtonFocusTraversal();
+
+        // 双击图片恢复原来大小
+        imageView.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2) {
+                resetScale();
+                updateImageViewSize();
+            }
+        });
 
         // 添加键盘事件支持
         mainPane.setOnKeyPressed(event->{
             switch (event.getCode()){
-                case LEFT:handlePrev() ;break;
-                case RIGHT:handleNext() ;break;
+                case LEFT: handlePrev(); break;
+                case RIGHT: handleNext(); break;
                 case PLUS:
-                case EQUALS:handleZoomIn();break;
-                case MINUS:handleZoomOut() ;break;
-                case SPACE:handlePlay();break;
-                case ESCAPE: closeButton.fire(); break; // 添加ESC键关闭窗口
+                case EQUALS: handleZoomIn(); break;
+                case MINUS: handleZoomOut(); break;
+                case SPACE: handleSpaceKey(); break;
+                case ESCAPE: closeButton.fire(); break;
             }
-        }) ;
+        });
+    }
 
+    private void setupButtonFocusTraversal() {
+        // 设置按钮的焦点遍历顺序
+        zoomInButton.setFocusTraversable(true);
+        zoomOutButton.setFocusTraversable(true);
+        prevButton.setFocusTraversable(true);
+        nextButton.setFocusTraversable(true);
+        playButton.setFocusTraversable(true);
+        closeButton.setFocusTraversable(true);
+
+        // 设置初始焦点
+        zoomInButton.requestFocus();
+    }
+
+    private void handleSpaceKey() {
+        // 获取当前获得焦点的按钮并触发其动作
+        if (zoomInButton.isFocused()) {
+            handleZoomIn();
+        } else if (zoomOutButton.isFocused()) {
+            handleZoomOut();
+        } else if (prevButton.isFocused()) {
+            handlePrev();
+        } else if (nextButton.isFocused()) {
+            handleNext();
+        } else if (playButton.isFocused()) {
+            handlePlay();
+        } else if (closeButton.isFocused()) {
+            handleClose();
+        }
     }
 
     //当前文件夹下的图片集合

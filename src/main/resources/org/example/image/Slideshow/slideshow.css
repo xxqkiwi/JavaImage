@@ -82,6 +82,14 @@
     -fx-cursor: default;
 }
 
+/* 焦点按钮样式 */
+.control-button:focused {
+    -fx-border-color: #87CEEB;
+    -fx-border-width: 2px;
+    -fx-border-radius: 4px;
+    -fx-background-color: #E0F0FF;
+}
+
 /* 状态标签 */
 .status-label {
     -fx-text-fill: #4682B4;

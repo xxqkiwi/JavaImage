@@ -5,7 +5,7 @@
 <?import javafx.scene.image.*?>
 <?import javafx.scene.layout.*?>
 
-<BorderPane fx:id="mainPane" prefHeight="609.0" prefWidth="786.0" xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.example.image.Controller.SlideshowController" styleClass="main-container">
+<BorderPane fx:id="mainPane" prefHeight="609.0" prefWidth="786.0" styleClass="main-container" xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.example.image.Controller.SlideshowController">
     <stylesheets>
         <URL value="@slideshow.css" />
     </stylesheets>
@@ -23,8 +23,8 @@
     <bottom>
         <VBox spacing="5" styleClass="bottom-container">
             <children>
-                <HBox fx:id="previewBox" alignment="CENTER" spacing="5" styleClass="preview-box" />
-                <HBox fx:id="toolbar" alignment="CENTER" prefHeight="52.0" prefWidth="740.0" spacing="10" styleClass="toolbar">
+                <HBox fx:id="previewBox" alignment="CENTER" prefHeight="66.0" prefWidth="786.0" spacing="5" styleClass="preview-box" />
+                <HBox fx:id="toolbar" alignment="CENTER" prefHeight="52.0" prefWidth="786.0" spacing="10" styleClass="toolbar">
                     <children>
                         <Button fx:id="zoomInButton" mnemonicParsing="false" onAction="#handleZoomIn" styleClass="control-button">
                             <graphic>
