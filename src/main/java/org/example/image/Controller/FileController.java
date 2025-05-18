@@ -229,34 +229,36 @@ public class FileController implements Initializable {
 
     private void setupThumbnailPane() {
         thumbnailPane.setOnMousePressed(event -> {
-            if (event.getButton() == javafx.scene.input.MouseButton.PRIMARY) { // 左键点击
-                if (event.getTarget() == thumbnailPane) {
-                    if (!event.isControlDown()) {
-                        clearSelection();
-                        isMultiSelecting = false; // 如果没有按住 Control 键，则重置多选状态
-                    } else {
-                        isMultiSelecting = true; // 按住 Control 键激活多选状态
-                    }
-                    dragStartX = event.getX();
-                    dragStartY = event.getY();
+            if (event.isPrimaryButtonDown() && event.getTarget() == thumbnailPane) {
+                if (!event.isControlDown()) {
+                    clearSelection();
                 }
-            } else if (event.getButton() == javafx.scene.input.MouseButton.SECONDARY) { // 右键点击
-                // 如果当前有选中的文件，显示上下文菜单
-                if (!selectedFiles.isEmpty()) {
-                    contextMenu.show(thumbnailPane, event.getScreenX(), event.getScreenY());
+                dragStartX = event.getX();
+                dragStartY = event.getY();
+            }
+        });
+
+        thumbnailPane.setOnMouseDragged(event -> {
+            for (javafx.scene.Node node : thumbnailPane.getChildren()) {
+                if (node instanceof VBox) {
+                    VBox thumbnailBox = (VBox) node;
+                    javafx.geometry.Bounds bounds = thumbnailBox.localToParent(thumbnailBox.getBoundsInLocal());
+                    if (bounds.contains(event.getX(), event.getY())) {
+                        File file = (File) thumbnailBox.getUserData();
+                        if (!selectedFiles.contains(file)) {
+                            selectImage(thumbnailBox, file);
+                        }
+                    }
                 }
                 event.consume();
             }
         });
 
-    thumbnailPane.setOnMouseClicked(event -> {
-        if (event.getButton() == javafx.scene.input.MouseButton.PRIMARY) {
+        thumbnailPane.setOnMouseClicked(event -> {
             if (event.getTarget() == thumbnailPane) {
                 clearSelection();
-                isMultiSelecting = false; // 左键点击空白处重置多选状态
             }
-        }
-    });
+        });
     }
 
     private VBox createThumbnail(File file) {
@@ -566,10 +568,12 @@ public class FileController implements Initializable {
     private void selectImage(VBox vbox, File file) {
         selectedFiles.add(file);
         vbox.getStyleClass().add("selected");
+      //  System.out.println("Selected file: " + file.getName() + ", selected count: " + selectedFiles.size());
         updateStatusMessage();
     }
 
     private void clearSelection() {
+      //  System.out.println("Clearing selection, before count: " + selectedFiles.size());
         selectedFiles.clear();
         for (javafx.scene.Node node : thumbnailPane.getChildren()) {
             if (node instanceof VBox) {
