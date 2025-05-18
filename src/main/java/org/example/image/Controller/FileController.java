@@ -4,6 +4,7 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -24,6 +25,9 @@ import java.io.*;
 import java.net.URL;
 import java.nio.file.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.regex.Pattern;
 import java.nio.channels.FileChannel;
 import java.nio.file.StandardOpenOption;
@@ -77,6 +81,10 @@ public class FileController implements Initializable {
 
     private ContextMenu contextMenu;
 
+    private final ExecutorService executorService = Executors.newFixedThreadPool(4); //线程池大小
+    private final ConcurrentHashMap<String, Image> imageCache = new ConcurrentHashMap<>();
+    private static final int CACHE_SIZE_LIMIT = 100; //缓存限制
+    private static final int THUMBNAIL_SIZE = 150; //缩略图大小
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -88,6 +96,13 @@ public class FileController implements Initializable {
         setupSearchField();
         setupPathField();
         setupNavigationButtons();
+        // 关闭时的清理缓存
+        Platform.runLater(() -> {
+            thumbnailPane.getScene().getWindow().setOnCloseRequest(event -> {
+                executorService.shutdown();
+                imageCache.clear();
+            });
+        });
     }
 
     private void setupDirectoryTree() {
@@ -261,7 +276,7 @@ public class FileController implements Initializable {
         });
     }
 
-    private VBox createThumbnail(File file) {
+    /*private VBox createThumbnail(File file) {
         try(FileInputStream fis = new FileInputStream(file)) {
             Image image = new Image(fis, 150, 150, true, true);
             ImageView imageView = new ImageView(image);
@@ -283,8 +298,8 @@ public class FileController implements Initializable {
             vbox.setPadding(new Insets(5));
             vbox.setUserData(file);
 
-            // 创建一个容器来保持图片的宽高比
-            StackPane imageContainer = new StackPane();
+          // 创建一个容器来保持图片的宽高比
+              StackPane imageContainer = new StackPane();
             imageContainer.setMaxSize(150, 150);
             imageContainer.getChildren().add(imageView);
             StackPane.setAlignment(imageView, Pos.CENTER);
@@ -292,16 +307,6 @@ public class FileController implements Initializable {
             vbox.getChildren().addAll(imageContainer, label);
             VBox.setVgrow(imageContainer, Priority.ALWAYS);
 
-            /*vbox.setOnMouseClicked(event -> {
-                if (event.isControlDown()) {
-                    toggleSelection(vbox, file);
-                } else if (event.getClickCount() == 2) {
-                    openSlideshow(file);
-                } else {
-                    clearSelection();
-                    selectImage(vbox, file);
-                }
-            });*/
 
             vbox.setOnMouseClicked(event -> {
                 if (event.getButton() == javafx.scene.input.MouseButton.SECONDARY) {
@@ -328,6 +333,103 @@ public class FileController implements Initializable {
             e.printStackTrace();
             return null;
         }
+    }*/
+    private VBox createThumbnail(File file) {
+        VBox vbox = new VBox();
+        vbox.getStyleClass().add("thumbnail-container");
+        vbox.setAlignment(Pos.CENTER);
+        vbox.setSpacing(5);
+        vbox.setPadding(new Insets(5));
+        vbox.setUserData(file);
+
+        // 创建加载指示器
+        ProgressIndicator progressIndicator = new ProgressIndicator();
+        progressIndicator.setMaxSize(50, 50);
+
+        StackPane imageContainer = new StackPane();
+        imageContainer.setMaxSize(THUMBNAIL_SIZE, THUMBNAIL_SIZE);
+        imageContainer.getChildren().add(progressIndicator);
+
+        Label label = new Label(file.getName());
+        label.getStyleClass().add("thumbnail-label");
+        label.setWrapText(true);
+        label.setMaxWidth(THUMBNAIL_SIZE);
+        label.setAlignment(Pos.CENTER);
+
+        vbox.getChildren().addAll(imageContainer, label);
+        VBox.setVgrow(imageContainer, Priority.ALWAYS);
+
+        // 异步加载图片
+        Task<Image> loadImageTask = new Task<>() {
+            @Override
+            protected Image call() throws Exception {
+                String cacheKey = file.getAbsolutePath();
+                Image cachedImage = imageCache.get(cacheKey);
+
+                if (cachedImage != null) {
+                    return cachedImage;
+                }
+
+                try (FileInputStream fis = new FileInputStream(file)) {
+                    Image image = new Image(fis, THUMBNAIL_SIZE, THUMBNAIL_SIZE, true, true);
+
+                    // 管理缓存大小
+                    if (imageCache.size() >= CACHE_SIZE_LIMIT) {
+                        imageCache.clear();
+                    }
+                    imageCache.put(cacheKey, image);
+
+                    return image;
+                }
+            }
+        };
+
+        loadImageTask.setOnSucceeded(event -> {
+            Image image = loadImageTask.getValue();
+            ImageView imageView = new ImageView(image);
+            imageView.setPreserveRatio(true);
+            imageView.setSmooth(true);
+            imageView.setCache(true);
+
+            Platform.runLater(() -> {
+                imageContainer.getChildren().clear();
+                imageContainer.getChildren().add(imageView);
+                StackPane.setAlignment(imageView, Pos.CENTER);
+            });
+        });
+
+        loadImageTask.setOnFailed(event -> {
+            Platform.runLater(() -> {
+                imageContainer.getChildren().clear();
+                Label errorLabel = new Label("加载失败");
+                errorLabel.getStyleClass().add("error-label");
+                imageContainer.getChildren().add(errorLabel);
+            });
+        });
+
+        executorService.submit(loadImageTask);
+
+        // 添加点击事件处理
+        vbox.setOnMouseClicked(event -> {
+            if (event.getButton() == javafx.scene.input.MouseButton.SECONDARY) {
+                if (!selectedFiles.contains(file)) {
+                    clearSelection();
+                    selectImage(vbox, file);
+                }
+                event.consume();
+            } else {
+                if (event.isControlDown()) {
+                    toggleSelection(vbox, file);
+                } else if (event.getClickCount() == 2) {
+                    openSlideshow(file);
+                } else {
+                    clearSelection();
+                    selectImage(vbox, file);
+                }
+            }
+        });
+
+        return vbox;
     }
 
     private VBox getvBox(File file, ImageView imageView) {

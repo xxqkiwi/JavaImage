@@ -64,8 +64,8 @@ public class SlideshowController implements Initializable {
 
 
     private final double ZOOM_FACTOR = 1.2; // 缩放因子
-    private final double MAX_SCALE = 2.5; // 最大放大倍数
-    private final double MIN_SCALE = 0.2; // 最小缩小倍数
+    private final double MAX_SCALE = 5.0; // 最大放大倍数
+    private final double MIN_SCALE = 0.05; // 最小缩小倍数
     private final double IMAGE_AREA_HEIGHT = 600; // 主图区域高度
     private final double TOOLBAR_HEIGHT = 60; // 工具栏高度
     private final double PREVIEW_HEIGHT = 80; // 预览条高度
