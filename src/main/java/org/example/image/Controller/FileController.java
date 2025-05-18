@@ -222,38 +222,38 @@ public class FileController implements Initializable {
             updateStatusMessage();
         }
     }
+    private boolean isMultiSelecting = false;// 是否处于多选状态
 
     private void setupThumbnailPane() {
         thumbnailPane.setOnMousePressed(event -> {
-            if (event.isPrimaryButtonDown() && event.getTarget() == thumbnailPane) {
-                if (!event.isControlDown()) {
-                    clearSelection();
-                }
-                dragStartX = event.getX();
-                dragStartY = event.getY();
-            }
-        });
-
-        thumbnailPane.setOnMouseDragged(event -> {
-            for (javafx.scene.Node node : thumbnailPane.getChildren()) {
-                if (node instanceof VBox) {
-                    VBox thumbnailBox = (VBox) node;
-                    javafx.geometry.Bounds bounds = thumbnailBox.localToParent(thumbnailBox.getBoundsInLocal());
-                    if (bounds.contains(event.getX(), event.getY())) {
-                        File file = (File) thumbnailBox.getUserData();
-                        if (!selectedFiles.contains(file)) {
-                            selectImage(thumbnailBox, file);
-                        }
+            if (event.getButton() == javafx.scene.input.MouseButton.PRIMARY) { // 左键点击
+                if (event.getTarget() == thumbnailPane) {
+                    if (!event.isControlDown()) {
+                        clearSelection();
+                        isMultiSelecting = false; // 如果没有按住 Control 键，则重置多选状态
+                    } else {
+                        isMultiSelecting = true; // 按住 Control 键激活多选状态
                     }
+                    dragStartX = event.getX();
+                    dragStartY = event.getY();
                 }
+            } else if (event.getButton() == javafx.scene.input.MouseButton.SECONDARY) { // 右键点击
+                // 如果当前有选中的文件，显示上下文菜单
+                if (!selectedFiles.isEmpty()) {
+                    contextMenu.show(thumbnailPane, event.getScreenX(), event.getScreenY());
+                }
+                event.consume();
             }
         });
 
-        thumbnailPane.setOnMouseClicked(event -> {
+    thumbnailPane.setOnMouseClicked(event -> {
+        if (event.getButton() == javafx.scene.input.MouseButton.PRIMARY) {
             if (event.getTarget() == thumbnailPane) {
                 clearSelection();
+                isMultiSelecting = false; // 左键点击空白处重置多选状态
             }
-        });
+        }
+    });
     }
 
     private VBox createThumbnail(File file) {
@@ -287,7 +287,7 @@ public class FileController implements Initializable {
             vbox.getChildren().addAll(imageContainer, label);
             VBox.setVgrow(imageContainer, Priority.ALWAYS);
 
-            vbox.setOnMouseClicked(event -> {
+            /*vbox.setOnMouseClicked(event -> {
                 if (event.isControlDown()) {
                     toggleSelection(vbox, file);
                 } else if (event.getClickCount() == 2) {
@@ -296,8 +296,28 @@ public class FileController implements Initializable {
                     clearSelection();
                     selectImage(vbox, file);
                 }
-            });
+            });*/
 
+            vbox.setOnMouseClicked(event -> {
+                if (event.getButton() == javafx.scene.input.MouseButton.SECONDARY) {
+                    // 如果点击的是未选中项，自动选中
+                    if (!selectedFiles.contains(file)) {
+                        clearSelection();
+                        selectImage(vbox, file);
+                    }
+                    event.consume();
+                } else {
+                    // 原有左键处理逻辑
+                    if (event.isControlDown()) {
+                        toggleSelection(vbox, file);
+                    } else if (event.getClickCount() == 2) {
+                        openSlideshow(file);
+                    } else {
+                        clearSelection();
+                        selectImage(vbox, file);
+                    }
+                }
+            });
             return vbox;
         } catch (IOException e) {
             e.printStackTrace();
