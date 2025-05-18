@@ -49,6 +49,8 @@ public class FileController implements Initializable {
     @FXML
     private Label statusMessageLabelText;
     @FXML
+    private Label message;
+    @FXML
     private Slider zoomSlider;
     @FXML
     private HBox previewBox;
@@ -74,6 +76,7 @@ public class FileController implements Initializable {
     private Stack<File> forwardHistory = new Stack<>();
 
     private ContextMenu contextMenu;
+
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -527,7 +530,7 @@ public class FileController implements Initializable {
 
         if (directory.isDirectory()) {
             currentDirectory = directory;
-            selectedDirLabel.setText("当前目录: " + directory.getAbsolutePath());
+            selectedDirLabel.setText("当前文件: " + directory.getName());
             pathField.setText(directory.getAbsolutePath());
 
             String searchText = searchField.getText();
@@ -730,10 +733,10 @@ public class FileController implements Initializable {
                 // 4. 根据操作类型（复制/剪切）执行操作
                 if (isCutOperation) {
                     Files.move(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
-                    statusMessage.set("剪切成功: " + fileName);
+                    message.setText("剪切成功: " + fileName);
                 } else {
                     Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
-                    statusMessage.set("复制成功: " + fileName);
+                    message.setText("复制成功: " + fileName);
                 }
 
             } catch (AccessDeniedException e) {

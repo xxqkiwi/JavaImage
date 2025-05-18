@@ -16,7 +16,7 @@
                     <children>
                         <TreeView fx:id="directoryTree" layoutX="-6.0" layoutY="34.0" prefHeight="483.0" prefWidth="237.0" styleClass="tree-view" />
                         <Label fx:id="infoLabel" layoutX="26.0" layoutY="50.0" text="我的电脑" />
-                        <Label fx:id="selectedDirLabel" layoutX="14.0" layoutY="14.0" text="当前目录: " />
+                        <Label fx:id="selectedDirLabel" layoutX="14.0" layoutY="14.0" text="当前文件: " />
                         <VBox layoutY="528.0" prefHeight="62.0" prefWidth="221.0" spacing="5" styleClass="status-bar">
                             <children>
                                 <Label fx:id="statusMessageLabel" styleClass="status-label" />
@@ -80,6 +80,7 @@
                             </content>
                         </ScrollPane>
                         <Separator layoutX="-2.0" layoutY="62.0" prefHeight="8.0" prefWidth="674.0" />
+                        <Label fx:id="message" layoutX="39.0" layoutY="40.0" prefHeight="23.0" prefWidth="221.0" />
                     </children>
                 </AnchorPane>
             </items>
