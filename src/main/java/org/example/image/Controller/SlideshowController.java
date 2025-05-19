@@ -64,8 +64,8 @@ public class SlideshowController implements Initializable {
 
 
     private final double ZOOM_FACTOR = 1.2; // 缩放因子
-    private final double MAX_SCALE = 2.5; // 最大放大倍数
-    private final double MIN_SCALE = 0.2; // 最小缩小倍数
+    private final double MAX_SCALE = 5.0; // 最大放大倍数
+    private final double MIN_SCALE = 0.05; // 最小缩小倍数
     private final double IMAGE_AREA_HEIGHT = 600; // 主图区域高度
     private final double TOOLBAR_HEIGHT = 60; // 工具栏高度
     private final double PREVIEW_HEIGHT = 80; // 预览条高度
@@ -118,7 +118,6 @@ public class SlideshowController implements Initializable {
         imageScrollPane.setFitToWidth(false); // 关键修改：不要强制适应宽度
         imageScrollPane.setFitToHeight(false); // 关键修改：不要强制适应高度
 
-
         // 设置工具栏样式，固定在底部中央
         toolbar.setAlignment(Pos.CENTER);
         toolbar.setPadding(new Insets(10));
@@ -166,7 +165,6 @@ public class SlideshowController implements Initializable {
             //重置缩放比例为初始值
             //    resetScale();
              //   updateImageViewSize();
-
 
             // 仅在初始布局完成后重置缩放
             if (initialLayoutComplete) {
@@ -233,10 +231,14 @@ public class SlideshowController implements Initializable {
 
 
 
+
+
     }
 
     private void updateStatus() {
         statusLabel.setText(String.format("图片 %d / %d", currentIndex + 1, imageFiles.size()));
+        //statusLabel.setText(String.format("图片 %d / %d (缩放: %.2f%%)",
+           //     currentIndex + 1, imageFiles.size(), currentScale * 100));
     }
 
     @FXML
