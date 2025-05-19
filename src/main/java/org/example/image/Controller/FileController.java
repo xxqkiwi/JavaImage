@@ -181,7 +181,7 @@ public class FileController implements Initializable {
             }
         }
     }
-
+//搜索图片
     private void setupSearchField() {
         searchField.textProperty().addListener((observable, oldValue, newValue) -> {
             if (currentDirectory != null) {
@@ -189,7 +189,7 @@ public class FileController implements Initializable {
             }
         });
     }
-
+//目录路径/目录搜索功能
     private void setupPathField() {
         pathField.setOnAction(event -> {
             String newPath = pathField.getText().trim();
@@ -207,18 +207,18 @@ public class FileController implements Initializable {
             }
         });
     }
-
+//根据目录路径更新选中的目录
     private void updateDirectoryTreeSelection(File directory) {
-        String path = directory.getAbsolutePath();
-        TreeItem<String> root = directoryTree.getRoot();
+        String path = directory.getAbsolutePath();// 获取目标路径
+        TreeItem<String> root = directoryTree.getRoot(); // 获取根节点
         for (TreeItem<String> item : root.getChildren()) {
-            if (item.getValue().equals(path)) {
-                directoryTree.getSelectionModel().select(item);
+            if (item.getValue().equals(path)) { //检查当前节点的值是否与目标路径匹配
+                directoryTree.getSelectionModel().select(item); // 匹配则选中
                 break;
             }
         }
     }
-
+//根据搜索结果更新缩略图
     private void filterThumbnails(String searchText) {
         thumbnailPane.getChildren().clear();
         selectedFiles.clear();
@@ -241,7 +241,7 @@ public class FileController implements Initializable {
         }
     }
     private boolean isMultiSelecting = false;// 是否处于多选状态
-
+//初始化缩略图面板的交互事件，如鼠标点击等
     private void setupThumbnailPane() {
         thumbnailPane.setOnMousePressed(event -> {
             if (event.isPrimaryButtonDown() && event.getTarget() == thumbnailPane) {
@@ -275,65 +275,7 @@ public class FileController implements Initializable {
             }
         });
     }
-
-    /*private VBox createThumbnail(File file) {
-        try(FileInputStream fis = new FileInputStream(file)) {
-            Image image = new Image(fis, 150, 150, true, true);
-            ImageView imageView = new ImageView(image);
-            imageView.getStyleClass().add("thumbnail-image");
-            imageView.setPreserveRatio(true);
-            imageView.setSmooth(true);
-            imageView.setCache(true);
-
-            Label label = new Label(file.getName());
-            label.getStyleClass().add("thumbnail-label");
-            label.setWrapText(true);
-            label.setMaxWidth(150);
-            label.setAlignment(Pos.CENTER);
-
-            VBox vbox = new VBox();
-            vbox.getStyleClass().add("thumbnail-container");
-            vbox.setAlignment(Pos.CENTER);
-            vbox.setSpacing(5);
-            vbox.setPadding(new Insets(5));
-            vbox.setUserData(file);
-
-          // 创建一个容器来保持图片的宽高比
-              StackPane imageContainer = new StackPane();
-            imageContainer.setMaxSize(150, 150);
-            imageContainer.getChildren().add(imageView);
-            StackPane.setAlignment(imageView, Pos.CENTER);
-
-            vbox.getChildren().addAll(imageContainer, label);
-            VBox.setVgrow(imageContainer, Priority.ALWAYS);
-
-
-            vbox.setOnMouseClicked(event -> {
-                if (event.getButton() == javafx.scene.input.MouseButton.SECONDARY) {
-                    // 如果点击的是未选中项，自动选中
-                    if (!selectedFiles.contains(file)) {
-                        clearSelection();
-                        selectImage(vbox, file);
-                    }
-                    event.consume();
-                } else {
-                    // 原有左键处理逻辑
-                    if (event.isControlDown()) {
-                        toggleSelection(vbox, file);
-                    } else if (event.getClickCount() == 2) {
-                        openSlideshow(file);
-                    } else {
-                        clearSelection();
-                        selectImage(vbox, file);
-                    }
-                }
-            });
-            return vbox;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }*/
+//把单个缩略图及其属性（名字等）封装在Vbox容器中，并添加点击事件
     private VBox createThumbnail(File file) {
         VBox vbox = new VBox();
         vbox.getStyleClass().add("thumbnail-container");
@@ -627,7 +569,7 @@ public class FileController implements Initializable {
         forwardButton.setDisable(forwardHistory.isEmpty());
         upButton.setDisable(currentDirectory == null || currentDirectory.getParentFile() == null);
     }
-
+//加载当前目录下的图片
     private void loadThumbnails(File directory) {
         thumbnailPane.getChildren().clear();
         selectedFiles.clear();

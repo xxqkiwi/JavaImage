@@ -78,7 +78,6 @@ public class SlideshowController implements Initializable {
         setupListeners();
 
     }
-    //新增
     private void setupInitializationListener() {
         // 监听场景和窗口初始化完成
         mainPane.sceneProperty().addListener((obs, oldScene, newScene) -> {
